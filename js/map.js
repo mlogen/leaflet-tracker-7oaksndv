@@ -20,17 +20,25 @@ class MapEditor {
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
         this.db = firebase.database();
-        // Sanitize the path for Firebase
-        // Create a unique, valid path for each page
-        const pagePath = window.location.pathname;
-        const sanitizedPath = pagePath === '/' || pagePath === '/index.html' 
-            ? 'swanley'
-            : pagePath.split('/').pop().replace('.html', '').toLowerCase();
-        
-        this.mapRef = this.db.ref('maps/' + sanitizedPath);
 
-        // Add debug logging
-        console.log('Firebase path:', 'maps/' + sanitizedPath);
+        // Create a clean path for Firebase
+        const getCleanPath = () => {
+            const path = window.location.pathname;
+            // Remove any leading/trailing slashes and file extension
+            const cleanPath = path.replace(/^\/+|\/+$/g, '').replace('.html', '');
+            
+            // If it's the root/index, return 'swanley'
+            if (!cleanPath || cleanPath === 'index') {
+                return 'swanley';
+            }
+            
+            // For other pages, take the last part of the path and sanitize it
+            const pageName = cleanPath.split('/').pop();
+            return pageName.replace(/[.#$\[\]]/g, '-');
+        };
+        
+        const sanitizedPath = getCleanPath();
+        this.mapRef = this.db.ref('maps/' + sanitizedPath);
 
         // Listen for real-time updates
         this.mapRef.on('value', (snapshot) => {

@@ -88,6 +88,7 @@ nav a:hover, nav a.active {
     #zoomIn, #zoomOut {
         width: 35px;
         height: 35px;
+        font-size: 1rem;
     }
 
     #colorPicker {
@@ -171,6 +172,43 @@ main {
     display: flex;
     align-items: center;
     justify-content: center;
+    background-color: white;
+    border: 2px solid var(--primary-color);
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px var(--shadow-color);
+    color: var(--text-color);
+    position: relative;
+    overflow: hidden;
+}
+
+#zoomIn:hover, #zoomOut:hover {
+    background-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+#zoomIn:active, #zoomOut:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+/* Add ripple effect */
+#zoomIn::after, #zoomOut::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    transform: scale(0);
+    transition: transform 0.3s ease;
+}
+
+#zoomIn:active::after, #zoomOut:active::after {
+    transform: scale(2);
+    opacity: 0;
 }
 
 #mapCanvas {
