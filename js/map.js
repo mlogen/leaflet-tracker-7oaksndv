@@ -46,12 +46,10 @@ class MapEditor {
         this.ctx.lineJoin = 'round';
         this.ctx.lineCap = 'round';
         this.ctx.lineWidth = 10;
-        this.ctx.globalAlpha = 0.5;
         
         this.drawingCtx.lineJoin = 'round';
         this.drawingCtx.lineCap = 'round';
         this.drawingCtx.lineWidth = 10;
-        this.drawingCtx.globalAlpha = 0.5;
 
         // Load background map image if specified
         const mapImagePath = this.canvas.dataset.mapImage;
@@ -168,7 +166,8 @@ class MapEditor {
         const pos = this.getMousePos(e);
         
         // Set line width based on tool
-        this.drawingCtx.lineWidth = this.tool === 'eraser' ? 20 : 10;  // Make eraser slightly bigger
+        this.drawingCtx.lineWidth = this.tool === 'eraser' ? 20 : 10;
+        this.drawingCtx.globalAlpha = this.tool === 'eraser' ? 1 : 0.5;
         this.drawingCtx.beginPath();
         this.drawingCtx.moveTo(
             (pos.x - this.getMapOffset().x) * (this.drawingCanvas.width / (this.backgroundImage.width * this.baseScale)),
@@ -194,7 +193,7 @@ class MapEditor {
         const pos = this.getMousePos(e);
         // Set composite operation and style for eraser/brush
         this.drawingCtx.globalCompositeOperation = this.tool === 'eraser' ? 'destination-out' : 'source-over';
-        this.drawingCtx.strokeStyle = this.tool === 'eraser' ? 'rgba(0,0,0,1)' : this.color;
+        this.drawingCtx.strokeStyle = this.tool === 'eraser' ? '#000000' : this.color;
         this.drawingCtx.lineTo(
             (pos.x - this.getMapOffset().x) * (this.drawingCanvas.width / (this.backgroundImage.width * this.baseScale)),
             (pos.y - this.getMapOffset().y) * (this.drawingCanvas.height / (this.backgroundImage.height * this.baseScale))
@@ -214,6 +213,7 @@ class MapEditor {
     stopDrawing() {
         if (this.isDrawing) {
             this.isDrawing = false;
+            this.drawingCtx.globalAlpha = 1; // Reset alpha after drawing
             this.saveMapState();
         }
     }
