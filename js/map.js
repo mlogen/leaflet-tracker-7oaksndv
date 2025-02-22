@@ -21,24 +21,27 @@ class MapEditor {
         const app = firebase.initializeApp(firebaseConfig);
         this.db = firebase.database();
 
-        // Create a clean path for Firebase
-        const getCleanPath = () => {
+        // Create a unique identifier for each page
+        const getPageId = () => {
             const path = window.location.pathname;
-            // Remove any leading/trailing slashes and file extension
-            const cleanPath = path.replace(/^\/+|\/+$/g, '').replace('.html', '');
             
-            // If it's the root/index, return 'swanley'
-            if (!cleanPath || cleanPath === 'index') {
-                return 'swanley';
-            }
+            // Map of paths to clean identifiers
+            const pathMap = {
+                '/': 'swanley',
+                '/index.html': 'swanley',
+                '/pages/sevenoaks-north.html': 'sevenoaks-north',
+                '/pages/sevenoaks-rural-ne.html': 'sevenoaks-rural-ne',
+                '/pages/sevenoaks-town.html': 'sevenoaks-town',
+                '/pages/sevenoaks-west.html': 'sevenoaks-west',
+                '/pages/sevenoaks-rural-s.html': 'sevenoaks-rural-s'
+            };
             
-            // For other pages, take the last part of the path and sanitize it
-            const pageName = cleanPath.split('/').pop();
-            return pageName.replace(/[.#$\[\]]/g, '-');
+            // Return mapped id or a fallback
+            return pathMap[path] || 'default';
         };
         
-        const sanitizedPath = getCleanPath();
-        this.mapRef = this.db.ref('maps/' + sanitizedPath);
+        const pageId = getPageId();
+        this.mapRef = this.db.ref('maps/' + pageId);
 
         // Listen for real-time updates
         this.mapRef.on('value', (snapshot) => {
@@ -72,11 +75,15 @@ class MapEditor {
         // Load background map image if specified
         const mapImagePath = this.canvas.dataset.mapImage;
         if (mapImagePath) {
+            // Show loading state
+            this.ctx.fillStyle = '#f0f0f0';
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.fillStyle = '#666';
+            this.ctx.textAlign = 'center';
+            this.ctx.font = '16px Montserrat';
+            this.ctx.fillText('Loading map...', this.canvas.width / 2, this.canvas.height / 2);
+
             const img = new Image();
-            console.log('Loading map image from:', mapImagePath);
-            
-            // Add crossOrigin if needed
-            img.crossOrigin = "Anonymous";
             
             img.onload = () => {
                 this.backgroundImage = img;
@@ -86,26 +93,22 @@ class MapEditor {
                     this.canvas.height / img.height
                 );
                 this.redrawCanvas();
-                console.log('Map image loaded successfully');
             };
             
             img.onerror = (error) => {
-                console.error('Error loading map image:', {
-                    path: mapImagePath,
-                    error: error,
-                    exists: typeof error.path !== 'undefined'
-                });
+                // Show error state on canvas
+                this.ctx.fillStyle = '#f0f0f0';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.fillStyle = '#666';
+                this.ctx.textAlign = 'center';
+                this.ctx.font = '16px Montserrat';
+                this.ctx.fillText('Error loading map', this.canvas.width / 2, this.canvas.height / 2 - 20);
+                this.ctx.font = '14px Montserrat';
+                this.ctx.fillText('Please check your connection and try again', this.canvas.width / 2, this.canvas.height / 2 + 20);
+                console.error('Map load error:', mapImagePath);
             };
             
             img.src = mapImagePath;
-            
-            // Double check if image path is correct
-            fetch(mapImagePath)
-                .then(response => {
-                    if (!response.ok) throw new Error('Image not found');
-                    console.log('Image exists at path');
-                })
-                .catch(error => console.error('Image fetch error:', error));
         }
     }
 
