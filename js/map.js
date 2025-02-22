@@ -13,13 +13,23 @@ class MapEditor {
         };
         this.lastMousePos = { x: 0, y: 0 };
         this.backgroundImage = null;
-        this.cursorCanvas = document.createElement('canvas');
-        this.cursorCtx = this.cursorCanvas.getContext('2d');
+        // Create overlay canvas for cursor preview
+        this.overlayCanvas = document.createElement('canvas');
+        this.overlayCanvas.style.position = 'absolute';
+        this.overlayCanvas.style.pointerEvents = 'none';
+        this.overlayCtx = this.overlayCanvas.getContext('2d');
         this.baseScale = 1;
         this.brushSize = 10;
         this.eraserSize = 20;
+        this.lastDrawPoint = null;
+        this.drawBuffer = [];
+        this.drawInterval = null;
+        // Create drawing layer
         this.drawingLayer = document.createElement('canvas');
-        this.drawingCtx = this.drawingLayer.getContext('2d');
+        this.drawingCtx = this.drawingLayer.getContext('2d', {
+            alpha: true,
+            willReadFrequently: true
+        });
 
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
@@ -207,6 +217,19 @@ class MapEditor {
 
         // Window resize
         window.addEventListener('resize', this.setupCanvas.bind(this));
+
+        // Brush size control
+        document.getElementById('brushSize').addEventListener('input', (e) => {
+            const size = parseInt(e.target.value);
+            if (this.tool === 'eraser') {
+                this.eraserSize = size * 2; // Eraser is double the brush size
+            } else {
+                this.brushSize = size;
+            }
+        });
+
+        // Start draw buffer interval
+        this.drawInterval = setInterval(this.flushDrawBuffer.bind(this), 16); // 60fps
     }
 
     handleMouseDown(e) {
@@ -233,16 +256,18 @@ class MapEditor {
         this.isDrawing = true;
         const pos = this.getMousePos(e);
         
-        this.ctx.beginPath();
+        // Configure drawing context based on tool
         if (this.tool === 'eraser') {
-            this.ctx.globalCompositeOperation = 'destination-out';
-            this.ctx.lineWidth = this.eraserSize;
+            this.drawingCtx.globalCompositeOperation = 'destination-out';
+            this.drawingCtx.lineWidth = this.eraserSize;
         } else {
-            this.ctx.globalCompositeOperation = 'source-over';
-            this.ctx.strokeStyle = this.color;
-            this.ctx.lineWidth = this.brushSize;
+            this.drawingCtx.globalCompositeOperation = 'source-over';
+            this.drawingCtx.strokeStyle = this.color;
+            this.drawingCtx.lineWidth = this.brushSize;
         }
-        this.ctx.moveTo(pos.x, pos.y);
+        
+        this.drawingCtx.beginPath();
+        this.drawingCtx.moveTo(pos.x, pos.y);
     }
 
     draw(e) {
@@ -266,10 +291,8 @@ class MapEditor {
         }
         
         const pos = this.getMousePos(e);
-        this.drawingCtx.lineTo(pos.x, pos.y);
-        this.drawingCtx.stroke();
-        this.drawingCtx.beginPath();
-        this.drawingCtx.moveTo(pos.x, pos.y);
+        // Add point to draw buffer
+        this.drawBuffer.push(pos);
         
         this.redrawCanvas();
     }
@@ -299,7 +322,7 @@ class MapEditor {
     stopDrawing() {
         if (this.isDrawing) {
             this.isDrawing = false;
-            this.ctx.globalCompositeOperation = 'source-over';
+            this.drawingCtx.globalCompositeOperation = 'source-over';
             this.saveMapState();
         }
     }
@@ -355,7 +378,7 @@ class MapEditor {
     async saveToFirebase() {
         try {
             await this.mapRef.set({
-                mapData: this.canvas.toDataURL(),
+                mapData: this.drawingLayer.toDataURL(),
                 transform: this.transform,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
@@ -377,16 +400,53 @@ class MapEditor {
         if (data.mapData) {
             const img = new Image();
             img.onload = () => {
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                this.ctx.drawImage(img, 0, 0);
+                this.drawingCtx.clearRect(0, 0, this.drawingLayer.width, this.drawingLayer.height);
+                this.drawingCtx.drawImage(img, 0, 0);
                 if (data.transform) {
                     this.transform = data.transform;
                 }
+                this.redrawCanvas();
             };
             img.src = data.mapData;
             if (data.transform) {
                 this.transform = data.transform;
             }
+        }
+    }
+
+    flushDrawBuffer() {
+        if (this.drawBuffer.length === 0) return;
+
+        const points = this.drawBuffer.splice(0);
+        if (points.length < 2) return;
+
+        this.drawingCtx.beginPath();
+        this.drawingCtx.moveTo(points[0].x, points[0].y);
+
+        // Use quadratic curves for smooth lines
+        for (let i = 1; i < points.length - 2; i++) {
+            const xc = (points[i].x + points[i + 1].x) / 2;
+            const yc = (points[i].y + points[i + 1].y) / 2;
+            this.drawingCtx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+        }
+
+        // Handle the last two points
+        if (points.length > 2) {
+            this.drawingCtx.quadraticCurveTo(
+                points[points.length - 2].x,
+                points[points.length - 2].y,
+                points[points.length - 1].x,
+                points[points.length - 1].y
+            );
+        }
+
+        this.drawingCtx.stroke();
+        this.redrawCanvas();
+    }
+
+    cleanup() {
+        if (this.drawInterval) {
+            clearInterval(this.drawInterval);
         }
     }
 }

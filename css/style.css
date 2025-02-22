@@ -126,11 +126,27 @@ main {
 }
 
 .map-tools {
-    margin-bottom: 1rem;
+    position: absolute;
+    top: 10px;
+    left: 10px;
     display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
+    gap: 10px;
+    z-index: 1000;
+}
+
+.size-controls {
+    display: flex;
     align-items: center;
+    gap: 5px;
+}
+
+.size-controls label {
+    color: #333;
+    font-size: 14px;
+}
+
+.size-controls input[type="range"] {
+    width: 100px;
 }
 
 .tool {
