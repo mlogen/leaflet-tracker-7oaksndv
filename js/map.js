@@ -16,8 +16,21 @@ class MapEditor {
         this.drawingCanvas = document.createElement('canvas');
         this.drawingCtx = this.drawingCanvas.getContext('2d');
         this.baseScale = 1; // Store the initial scale of the map
-        this.apiEndpoint = 'https://your-backend-service.com/api/maps';
-        
+
+        // Initialize Firebase
+        const app = firebase.initializeApp(firebaseConfig);
+        this.db = firebase.database();
+        this.mapRef = this.db.ref('maps/' + window.location.pathname.replace(/\//g, '_'));
+
+        // Listen for real-time updates
+        this.mapRef.on('value', (snapshot) => {
+            const data = snapshot.val();
+            if (data && (!this.lastSync || data.timestamp > this.lastSync)) {
+                this.loadFromFirebase(data);
+                this.lastSync = data.timestamp;
+            }
+        });
+
         this.setupCanvas();
         this.setupEventListeners();
     }
@@ -128,9 +141,6 @@ class MapEditor {
 
         // Window resize
         window.addEventListener('resize', this.setupCanvas.bind(this));
-
-        // Add periodic sync
-        setInterval(() => this.checkForUpdates(), 5000); // Check every 5 seconds
     }
 
     handleMouseDown(e) {
@@ -246,73 +256,39 @@ class MapEditor {
         this.redrawCanvas();
     }
 
-    async syncWithServer() {
-        const mapData = this.drawingCanvas.toDataURL();
-        const pageId = window.location.pathname;
-        
+    async saveToFirebase() {
         try {
-            await fetch(`${this.apiEndpoint}/${pageId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    mapData,
-                    transform: this.transform
-                })
+            await this.mapRef.set({
+                mapData: this.drawingCanvas.toDataURL(),
+                transform: this.transform,
+                timestamp: firebase.database.ServerValue.TIMESTAMP
             });
         } catch (error) {
-            console.error('Failed to sync with server:', error);
+            console.error('Failed to save to Firebase:', error);
         }
     }
 
     async saveMapState() {
-        // Save locally first
+        // Save locally
         localStorage.setItem(window.location.pathname + '_mapData', this.drawingCanvas.toDataURL());
         localStorage.setItem(window.location.pathname + '_transform', JSON.stringify(this.transform));
         
-        // Then sync with server
-        await this.syncWithServer();
+        // Save to Firebase
+        await this.saveToFirebase();
     }
 
-    async checkForUpdates() {
-        try {
-            const response = await fetch(`${this.apiEndpoint}/${window.location.pathname}`);
-            const serverData = await response.json();
-            
-            if (serverData.lastModified > this.lastSync) {
-                // Load new data
-                const img = new Image();
-                img.onload = () => {
-                    this.drawingCtx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
-                    this.drawingCtx.drawImage(img, 0, 0);
-                    this.transform = serverData.transform;
-                    this.redrawCanvas();
-                };
-                img.src = serverData.mapData;
-                this.lastSync = serverData.lastModified;
-            }
-        } catch (error) {
-            console.error('Failed to check for updates:', error);
-        }
-    }
-
-    loadMapState() {
-        const mapData = localStorage.getItem(window.location.pathname + '_mapData');
-        const savedTransform = localStorage.getItem(window.location.pathname + '_transform');
-
-        if (savedTransform) {
-            this.transform = JSON.parse(savedTransform);
-        }
-
-        if (mapData) {
+    loadFromFirebase(data) {
+        if (data.mapData) {
             const img = new Image();
             img.onload = () => {
                 this.drawingCtx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
                 this.drawingCtx.drawImage(img, 0, 0);
+                if (data.transform) {
+                    this.transform = data.transform;
+                }
                 this.redrawCanvas();
             };
-            img.src = mapData;
+            img.src = data.mapData;
         }
     }
 }
