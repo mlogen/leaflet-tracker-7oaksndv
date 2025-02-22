@@ -18,6 +18,8 @@ nav {
     background-color: var(--primary-color);
     padding: 1rem;
     box-shadow: 0 2px 4px var(--shadow-color);
+    position: relative;
+    overflow-x: auto;  /* Allow horizontal scroll if needed */
 }
 
 .nav-container {
@@ -27,6 +29,8 @@ nav {
     justify-content: space-between;
     align-items: center;
     text-align: center;
+    min-width: 800px;  /* Ensure minimum width for readability */
+    padding: 0 3rem;   /* Space for version number */
 }
 
 .nav-links {
@@ -35,6 +39,7 @@ nav {
     gap: 1rem;
     flex: 1;
     justify-content: center;
+    padding: 0.5rem 0;
 }
 
 nav a {
@@ -45,6 +50,8 @@ nav a {
     font-weight: 500;
     transition: all 0.3s ease;
     white-space: nowrap;
+    font-size: 0.9rem;
+    min-width: max-content;
 }
 
 nav a:hover, nav a.active {
@@ -59,6 +66,53 @@ nav a:hover, nav a.active {
     font-weight: 500;
     position: absolute;
     right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: var(--primary-color);
+    z-index: 1;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+    nav {
+        padding: 0.5rem;
+    }
+
+    .nav-container {
+        padding: 0 2.5rem;
+    }
+
+    nav a {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+    }
+
+    .version {
+        font-size: 0.8rem;
+        padding: 0.3rem;
+    }
+}
+
+/* Ensure tools fit on smaller screens */
+@media (max-width: 600px) {
+    .map-tools {
+        justify-content: center;
+    }
+
+    .tool {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.9rem;
+    }
+
+    #zoomIn, #zoomOut {
+        width: 35px;
+        height: 35px;
+    }
+
+    #colorPicker {
+        width: 35px;
+        height: 35px;
+    }
 }
 
 main {

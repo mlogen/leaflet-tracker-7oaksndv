@@ -20,7 +20,13 @@ class MapEditor {
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
         this.db = firebase.database();
-        this.mapRef = this.db.ref('maps/' + window.location.pathname.replace(/\//g, '_'));
+        // Sanitize the path for Firebase
+        const sanitizedPath = window.location.pathname
+            .replace(/\//g, '_')
+            .replace(/\./g, '_')
+            .replace(/[\[\]#$]/g, '_')
+            .replace(/^_/, ''); // Remove leading underscore
+        this.mapRef = this.db.ref('maps/' + sanitizedPath);
 
         // Listen for real-time updates
         this.mapRef.on('value', (snapshot) => {
