@@ -3,16 +3,13 @@ class MapEditor {
         this.canvas = document.getElementById('mapCanvas');
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
         this.isDrawing = false;
-        this.isPanning = false;
         this.tool = 'brush';
         this.color = '#FF0000';
-        this.lastMousePos = { x: 0, y: 0 };
         this.backgroundImage = null;
         // Create overlay canvas for cursor preview
         this.overlayCanvas = document.createElement('canvas');
         this.overlayCanvas.style.position = 'absolute';
         this.overlayCtx = this.overlayCanvas.getContext('2d');
-        this.baseScale = 1;
         this.brushSize = 5;  // Fixed brush size
         this.eraserSize = 10;  // Fixed eraser size
         this.lastDrawPoint = null;
@@ -118,8 +115,6 @@ class MapEditor {
             
             img.onload = () => {
                 this.backgroundImage = img;
-                // Calculate scale to fit width
-                this.baseScale = this.canvas.width / img.width;
                 this.redrawCanvas();
             };
             
@@ -174,13 +169,11 @@ class MapEditor {
 
         // Draw background image
         if (this.backgroundImage) {
-            // Draw at calculated scale to fit width
-            const scaledHeight = this.backgroundImage.height * this.baseScale;
             this.ctx.drawImage(
                 this.backgroundImage,
                 0, 0,
                 this.canvas.width,
-                scaledHeight
+                this.canvas.height
             );
 
             // Draw the drawing layer at same scale
@@ -188,7 +181,7 @@ class MapEditor {
                 this.drawingLayer,
                 0, 0,
                 this.canvas.width,
-                scaledHeight
+                this.canvas.height
             );
         }
     }
@@ -226,11 +219,6 @@ class MapEditor {
         this.isDrawing = true;
         const pos = this.getMousePos(e);
         
-        // Get map offset for correct drawing position
-        const offset = this.getMapOffset();
-        const drawX = (pos.x - offset.x) * (this.drawingLayer.width / (this.backgroundImage.width * this.baseScale));
-        const drawY = (pos.y - offset.y) * (this.drawingLayer.height / (this.backgroundImage.height * this.baseScale));
-        
         // Configure drawing context based on tool
         if (this.tool === 'eraser') {
             this.drawingCtx.globalCompositeOperation = 'destination-out';
@@ -242,45 +230,24 @@ class MapEditor {
         }
         
         this.drawingCtx.beginPath();
-        this.drawingCtx.moveTo(drawX, drawY);
-        this.lastDrawPoint = { x: drawX, y: drawY };
+        this.drawingCtx.moveTo(pos.x, pos.y);
+        this.lastDrawPoint = pos;
     }
 
     draw(e) {
         if (!this.isDrawing) {
-            if (this.tool === 'eraser') {
-                this.updateEraserPreview(e);
-            }
             return;
         }
         
         const pos = this.getMousePos(e);
-        const offset = this.getMapOffset();
-        const drawX = (pos.x - offset.x) * (this.drawingLayer.width / (this.backgroundImage.width * this.baseScale));
-        const drawY = (pos.y - offset.y) * (this.drawingLayer.height / (this.backgroundImage.height * this.baseScale));
         
         if (this.lastDrawPoint) {
             this.drawingCtx.beginPath();
             this.drawingCtx.moveTo(this.lastDrawPoint.x, this.lastDrawPoint.y);
-            // Add smooth line interpolation
-            const dx = drawX - this.lastDrawPoint.x;
-            const dy = drawY - this.lastDrawPoint.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            
-            if (dist > 2) {
-                const steps = Math.floor(dist / 2);
-                for (let i = 1; i <= steps; i++) {
-                    const t = i / steps;
-                    const x = this.lastDrawPoint.x + dx * t;
-                    const y = this.lastDrawPoint.y + dy * t;
-                    this.drawingCtx.lineTo(x, y);
-                }
-            } else {
-                this.drawingCtx.lineTo(drawX, drawY);
-            }
+            this.drawingCtx.lineTo(pos.x, pos.y);
             this.drawingCtx.stroke();
         }
-        this.lastDrawPoint = { x: drawX, y: drawY };
+        this.lastDrawPoint = pos;
         this.needsRedraw = true;
     }
 
@@ -292,8 +259,8 @@ class MapEditor {
         
         // Apply same transform as main canvas
         this.cursorCtx.setTransform(
-            this.baseScale, 0,
-            0, this.baseScale,
+            1, 0,
+            0, 1,
             0, 0
         );
         
@@ -324,18 +291,11 @@ class MapEditor {
         }
     }
 
-    getMapOffset() {
-        return {
-            x: (this.canvas.width - this.backgroundImage.width * this.baseScale) / 2,
-            y: (this.canvas.height - this.backgroundImage.height * this.baseScale) / 2
-        };
-    }
-
     getMousePos(e) {
         const rect = this.canvas.getBoundingClientRect();
         return {
-            x: (e.clientX - rect.left) / this.baseScale,
-            y: (e.clientY - rect.top) / this.baseScale
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
         };
     }
 
@@ -350,11 +310,6 @@ class MapEditor {
         try {
             await this.mapRef.set({
                 mapData: this.drawingLayer.toDataURL(),
-                transform: {
-                    scale: this.baseScale,
-                    offsetX: 0,
-                    offsetY: 0
-                },
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
         } catch (error) {
@@ -365,11 +320,6 @@ class MapEditor {
     async saveMapState() {
         // Save locally
         localStorage.setItem(window.location.pathname + '_mapData', this.canvas.toDataURL());
-        localStorage.setItem(window.location.pathname + '_transform', JSON.stringify({
-            scale: this.baseScale,
-            offsetX: 0,
-            offsetY: 0
-        }));
         
         // Save to Firebase
         await this.saveToFirebase();
@@ -381,15 +331,9 @@ class MapEditor {
             img.onload = () => {
                 this.drawingCtx.clearRect(0, 0, this.drawingLayer.width, this.drawingLayer.height);
                 this.drawingCtx.drawImage(img, 0, 0);
-                if (data.transform) {
-                    this.baseScale = data.transform.scale;
-                }
                 this.redrawCanvas();
             };
             img.src = data.mapData;
-            if (data.transform) {
-                this.baseScale = data.transform.scale;
-            }
         }
     }
 
