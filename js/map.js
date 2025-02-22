@@ -234,8 +234,16 @@ class MapEditor {
         this.isDrawing = true;
         const pos = this.getMousePos(e);
         
-        // Set line width based on tool
-        this.drawingCtx.lineWidth = this.tool === 'eraser' ? 20 : 10;
+        // Configure drawing context based on tool
+        if (this.tool === 'eraser') {
+            this.drawingCtx.lineWidth = 20;
+            this.drawingCtx.globalCompositeOperation = 'destination-out';
+        } else {
+            this.drawingCtx.lineWidth = 10;
+            this.drawingCtx.globalCompositeOperation = 'source-over';
+            this.drawingCtx.strokeStyle = this.color;
+        }
+        
         this.drawingCtx.beginPath();
         this.drawingCtx.moveTo(
             (pos.x - this.getMapOffset().x) * (this.drawingCanvas.width / (this.backgroundImage.width * this.baseScale)),
@@ -259,8 +267,6 @@ class MapEditor {
         if (!this.isDrawing) return;
         
         const pos = this.getMousePos(e);
-        this.drawingCtx.globalCompositeOperation = this.tool === 'eraser' ? 'destination-out' : 'source-over';
-        this.drawingCtx.strokeStyle = this.tool === 'eraser' ? '#000000' : this.color;
         this.drawingCtx.globalAlpha = 1;  // Draw at full opacity on drawing canvas
         this.drawingCtx.lineTo(
             (pos.x - this.getMapOffset().x) * (this.drawingCanvas.width / (this.backgroundImage.width * this.baseScale)),
