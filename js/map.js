@@ -167,6 +167,8 @@ class MapEditor {
         this.isDrawing = true;
         const pos = this.getMousePos(e);
         
+        // Set line width based on tool
+        this.drawingCtx.lineWidth = this.tool === 'eraser' ? 20 : 10;  // Make eraser slightly bigger
         this.drawingCtx.beginPath();
         this.drawingCtx.moveTo(
             (pos.x - this.getMapOffset().x) * (this.drawingCanvas.width / (this.backgroundImage.width * this.baseScale)),
@@ -190,13 +192,21 @@ class MapEditor {
         if (!this.isDrawing) return;
         
         const pos = this.getMousePos(e);
+        // Set composite operation and style for eraser/brush
         this.drawingCtx.globalCompositeOperation = this.tool === 'eraser' ? 'destination-out' : 'source-over';
-        this.drawingCtx.strokeStyle = this.color;
+        this.drawingCtx.strokeStyle = this.tool === 'eraser' ? 'rgba(0,0,0,1)' : this.color;
         this.drawingCtx.lineTo(
             (pos.x - this.getMapOffset().x) * (this.drawingCanvas.width / (this.backgroundImage.width * this.baseScale)),
             (pos.y - this.getMapOffset().y) * (this.drawingCanvas.height / (this.backgroundImage.height * this.baseScale))
         );
         this.drawingCtx.stroke();
+        
+        // Start a new path to prevent connecting lines
+        this.drawingCtx.beginPath();
+        this.drawingCtx.moveTo(
+            (pos.x - this.getMapOffset().x) * (this.drawingCanvas.width / (this.backgroundImage.width * this.baseScale)),
+            (pos.y - this.getMapOffset().y) * (this.drawingCanvas.height / (this.backgroundImage.height * this.baseScale))
+        );
         
         this.redrawCanvas();
     }
