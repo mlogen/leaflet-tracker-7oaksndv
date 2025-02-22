@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sevenoaks Town - Canvassing Map Tracker</title>
     <link rel="stylesheet" href="../css/style.css">
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="../js/config.js"></script>
 </head>
 <body>
     <nav>
@@ -28,6 +31,7 @@
             <div class="map-tools">
                 <button id="brush" class="tool active">Brush</button>
                 <button id="eraser" class="tool">Eraser</button>
+                <button id="pan" class="tool">Pan</button>
                 <input type="color" id="colorPicker" value="#FF0000">
                 <button id="zoomIn">+</button>
                 <button id="zoomOut">-</button>
