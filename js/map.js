@@ -267,6 +267,13 @@ class MapEditor {
         if (!this.isDrawing) return;
         
         const pos = this.getMousePos(e);
+        // Maintain eraser settings during the stroke
+        if (this.tool === 'eraser') {
+            this.drawingCtx.globalCompositeOperation = 'destination-out';
+        } else {
+            this.drawingCtx.globalCompositeOperation = 'source-over';
+            this.drawingCtx.strokeStyle = this.color;
+        }
         this.drawingCtx.globalAlpha = 1;  // Draw at full opacity on drawing canvas
         this.drawingCtx.lineTo(
             (pos.x - this.getMapOffset().x) * (this.drawingCanvas.width / (this.backgroundImage.width * this.baseScale)),
