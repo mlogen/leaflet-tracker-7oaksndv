@@ -84,6 +84,8 @@ class MapEditor {
             this.ctx.fillText('Loading map...', this.canvas.width / 2, this.canvas.height / 2);
 
             const img = new Image();
+            let retryCount = 0;
+            const maxRetries = 3;
             
             img.onload = () => {
                 this.backgroundImage = img;
@@ -96,6 +98,19 @@ class MapEditor {
             };
             
             img.onerror = (error) => {
+                retryCount++;
+                if (retryCount <= maxRetries) {
+                    console.log(`Retrying image load (${retryCount}/${maxRetries})...`);
+                    // Try alternative paths
+                    const altPaths = [
+                        `assets/images/Swanley_A1L_Reduced-1.png`,
+                        `/assets/images/Swanley_A1L_Reduced-1.png`,
+                        `/leaflet-tracker/assets/images/Swanley_A1L_Reduced-1.png`
+                    ];
+                    img.src = altPaths[retryCount - 1];
+                    return;
+                }
+
                 // Show error state on canvas
                 this.ctx.fillStyle = '#f0f0f0';
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
@@ -104,7 +119,8 @@ class MapEditor {
                 this.ctx.font = '16px Montserrat';
                 this.ctx.fillText('Error loading map', this.canvas.width / 2, this.canvas.height / 2 - 20);
                 this.ctx.font = '14px Montserrat';
-                this.ctx.fillText('Please check your connection and try again', this.canvas.width / 2, this.canvas.height / 2 + 20);
+                this.ctx.fillText('Map image not found. Please check image path:', this.canvas.width / 2, this.canvas.height / 2 + 10);
+                this.ctx.fillText(mapImagePath, this.canvas.width / 2, this.canvas.height / 2 + 30);
                 console.error('Map load error:', mapImagePath);
             };
             
