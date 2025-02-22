@@ -66,6 +66,16 @@ class MapEditor {
             }
         });
 
+        // Create cursor canvas for tool feedback
+        this.cursorCanvas = document.createElement('canvas');
+        this.cursorCanvas.style.position = 'absolute';
+        this.cursorCanvas.style.pointerEvents = 'none';
+        this.cursorCtx = this.cursorCanvas.getContext('2d');
+        
+        // Performance optimizations
+        this.requestAnimationId = null;
+        this.needsRedraw = false;
+
         this.setupCanvas();
         this.setupEventListeners();
     }
@@ -83,6 +93,13 @@ class MapEditor {
         this.canvas.parentNode.appendChild(this.overlayCanvas);
         this.overlayCanvas.style.left = this.canvas.offsetLeft + 'px';
         this.overlayCanvas.style.top = this.canvas.offsetTop + 'px';
+
+        // Add cursor canvas to DOM
+        this.canvas.parentNode.appendChild(this.cursorCanvas);
+        this.cursorCanvas.width = this.canvas.width;
+        this.cursorCanvas.height = this.canvas.height;
+        this.cursorCanvas.style.left = this.canvas.offsetLeft + 'px';
+        this.cursorCanvas.style.top = this.canvas.offsetTop + 'px';
 
         // Set default styles
         this.ctx.lineJoin = 'round';
@@ -144,6 +161,20 @@ class MapEditor {
             
             img.src = mapImagePath;
         }
+
+        // Start animation loop
+        this.startAnimationLoop();
+    }
+
+    startAnimationLoop() {
+        const animate = () => {
+            if (this.needsRedraw) {
+                this.redrawCanvas();
+                this.needsRedraw = false;
+            }
+            this.requestAnimationId = requestAnimationFrame(animate);
+        };
+        animate();
     }
 
     redrawCanvas() {
@@ -227,9 +258,6 @@ class MapEditor {
                 this.brushSize = size;
             }
         });
-
-        // Start draw buffer interval
-        this.drawInterval = setInterval(this.flushDrawBuffer.bind(this), 16); // 60fps
     }
 
     handleMouseDown(e) {
@@ -256,6 +284,11 @@ class MapEditor {
         this.isDrawing = true;
         const pos = this.getMousePos(e);
         
+        // Get map offset for correct drawing position
+        const offset = this.getMapOffset();
+        const drawX = (pos.x - offset.x) * (this.drawingLayer.width / (this.backgroundImage.width * this.baseScale));
+        const drawY = (pos.y - offset.y) * (this.drawingLayer.height / (this.backgroundImage.height * this.baseScale));
+        
         // Configure drawing context based on tool
         if (this.tool === 'eraser') {
             this.drawingCtx.globalCompositeOperation = 'destination-out';
@@ -267,7 +300,8 @@ class MapEditor {
         }
         
         this.drawingCtx.beginPath();
-        this.drawingCtx.moveTo(pos.x, pos.y);
+        this.drawingCtx.moveTo(drawX, drawY);
+        this.lastDrawPoint = { x: drawX, y: drawY };
     }
 
     draw(e) {
@@ -284,39 +318,70 @@ class MapEditor {
         }
 
         if (!this.isDrawing) {
-            if (this.tool === 'eraser') {
-                this.updateEraserPreview(e);
-            }
+            this.updateCursor(e);
             return;
         }
         
         const pos = this.getMousePos(e);
-        // Add point to draw buffer
-        this.drawBuffer.push(pos);
+        const offset = this.getMapOffset();
+        const drawX = (pos.x - offset.x) * (this.drawingLayer.width / (this.backgroundImage.width * this.baseScale));
+        const drawY = (pos.y - offset.y) * (this.drawingLayer.height / (this.backgroundImage.height * this.baseScale));
         
-        this.redrawCanvas();
+        if (this.lastDrawPoint) {
+            this.drawingCtx.beginPath();
+            this.drawingCtx.moveTo(this.lastDrawPoint.x, this.lastDrawPoint.y);
+            // Add smooth line interpolation
+            const dx = drawX - this.lastDrawPoint.x;
+            const dy = drawY - this.lastDrawPoint.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist > 2) {
+                const steps = Math.floor(dist / 2);
+                for (let i = 1; i <= steps; i++) {
+                    const t = i / steps;
+                    const x = this.lastDrawPoint.x + dx * t;
+                    const y = this.lastDrawPoint.y + dy * t;
+                    this.drawingCtx.lineTo(x, y);
+                }
+            } else {
+                this.drawingCtx.lineTo(drawX, drawY);
+            }
+            this.drawingCtx.stroke();
+        }
+        this.lastDrawPoint = { x: drawX, y: drawY };
+        this.needsRedraw = true;
     }
 
-    updateEraserPreview(e) {
+    updateCursor(e) {
         const pos = this.getMousePos(e);
         
-        // Clear overlay
-        this.overlayCtx.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
+        // Clear cursor canvas
+        this.cursorCtx.clearRect(0, 0, this.cursorCanvas.width, this.cursorCanvas.height);
         
-        // Transform overlay context to match main canvas
-        this.overlayCtx.setTransform(
+        // Apply same transform as main canvas
+        this.cursorCtx.setTransform(
             this.transform.scale, 0,
             0, this.transform.scale,
             this.transform.offsetX, this.transform.offsetY
         );
         
-        // Draw eraser preview
-        this.overlayCtx.beginPath();
-        this.overlayCtx.arc(pos.x, pos.y, this.eraserSize/2, 0, Math.PI * 2);
-        this.overlayCtx.strokeStyle = '#000';
-        this.overlayCtx.stroke();
-        this.overlayCtx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-        this.overlayCtx.fill();
+        if (this.tool === 'eraser') {
+            // Draw eraser cursor
+            this.cursorCtx.beginPath();
+            this.cursorCtx.arc(pos.x, pos.y, this.eraserSize/2, 0, Math.PI * 2);
+            this.cursorCtx.strokeStyle = '#000';
+            this.cursorCtx.stroke();
+            this.cursorCtx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            this.cursorCtx.fill();
+        } else if (this.tool === 'brush') {
+            // Draw brush cursor
+            this.cursorCtx.beginPath();
+            this.cursorCtx.arc(pos.x, pos.y, this.brushSize/2, 0, Math.PI * 2);
+            this.cursorCtx.strokeStyle = this.color;
+            this.cursorCtx.stroke();
+            this.cursorCtx.fillStyle = `${this.color}33`;
+            this.cursorCtx.fill();
+        }
     }
 
     stopDrawing() {
@@ -414,40 +479,11 @@ class MapEditor {
         }
     }
 
-    flushDrawBuffer() {
-        if (this.drawBuffer.length === 0) return;
-
-        const points = this.drawBuffer.splice(0);
-        if (points.length < 2) return;
-
-        this.drawingCtx.beginPath();
-        this.drawingCtx.moveTo(points[0].x, points[0].y);
-
-        // Use quadratic curves for smooth lines
-        for (let i = 1; i < points.length - 2; i++) {
-            const xc = (points[i].x + points[i + 1].x) / 2;
-            const yc = (points[i].y + points[i + 1].y) / 2;
-            this.drawingCtx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
-        }
-
-        // Handle the last two points
-        if (points.length > 2) {
-            this.drawingCtx.quadraticCurveTo(
-                points[points.length - 2].x,
-                points[points.length - 2].y,
-                points[points.length - 1].x,
-                points[points.length - 1].y
-            );
-        }
-
-        this.drawingCtx.stroke();
-        this.redrawCanvas();
-    }
-
     cleanup() {
-        if (this.drawInterval) {
-            clearInterval(this.drawInterval);
+        if (this.requestAnimationId) {
+            cancelAnimationFrame(this.requestAnimationId);
         }
+        this.cursorCanvas.remove();
     }
 }
 
