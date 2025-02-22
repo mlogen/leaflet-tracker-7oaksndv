@@ -17,6 +17,9 @@ class MapEditor {
             willReadFrequently: true
         });
 
+        // Handle window resize
+        window.addEventListener('resize', this.handleResize.bind(this));
+
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
         this.db = firebase.database();
@@ -66,8 +69,33 @@ class MapEditor {
         this.setupEventListeners();
     }
 
+    handleResize() {
+        if (this.backgroundImage) {
+            // Store current drawing
+            const drawingData = this.drawingLayer.toDataURL();
+            
+            // Resize canvases
+            this.canvas.width = this.canvas.offsetWidth;
+            const scale = this.canvas.width / this.backgroundImage.width;
+            const scaledHeight = this.backgroundImage.height * scale;
+            this.canvas.height = scaledHeight;
+            
+            // Resize drawing layer
+            this.drawingLayer.width = this.canvas.width;
+            this.drawingLayer.height = scaledHeight;
+            
+            // Restore drawing
+            const img = new Image();
+            img.onload = () => {
+                this.drawingCtx.drawImage(img, 0, 0, this.canvas.width, scaledHeight);
+                this.redrawCanvas();
+            };
+            img.src = drawingData;
+        }
+    }
+
     setupCanvas() {
-        // Set canvas sizes
+        // Set initial canvas width
         this.canvas.width = this.canvas.offsetWidth;
         this.drawingLayer.width = this.canvas.width;
         
@@ -80,50 +108,16 @@ class MapEditor {
         // Load background map image if specified
         const mapImagePath = this.canvas.dataset.mapImage;
         if (mapImagePath) {
-            // Show loading state
-            this.ctx.fillStyle = '#f0f0f0';
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.width * 0.75); // Temporary height
-            this.ctx.fillStyle = '#666';
-            this.ctx.textAlign = 'center';
-            this.ctx.font = '16px Montserrat';
-            this.ctx.fillText('Loading map...', this.canvas.width / 2, this.canvas.width * 0.375);
-
             const img = new Image();
-            let retryCount = 0;
-            const maxRetries = 3;
-            
             img.onload = () => {
                 this.backgroundImage = img;
+                // Set initial height based on aspect ratio
+                const scale = this.canvas.width / img.width;
+                const scaledHeight = img.height * scale;
+                this.canvas.height = scaledHeight;
+                this.drawingLayer.height = scaledHeight;
                 this.redrawCanvas();
             };
-            
-            img.onerror = (error) => {
-                retryCount++;
-                if (retryCount <= maxRetries) {
-                    console.log(`Retrying image load (${retryCount}/${maxRetries})...`);
-                    // Try alternative paths
-                    const altPaths = [
-                        `assets/images/Swanley_A1L_Reduced-1.png`,
-                        `/assets/images/Swanley_A1L_Reduced-1.png`,
-                        `/leaflet-tracker/assets/images/Swanley_A1L_Reduced-1.png`
-                    ];
-                    img.src = altPaths[retryCount - 1];
-                    return;
-                }
-
-                // Show error state on canvas
-                this.ctx.fillStyle = '#f0f0f0';
-                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-                this.ctx.fillStyle = '#666';
-                this.ctx.textAlign = 'center';
-                this.ctx.font = '16px Montserrat';
-                this.ctx.fillText('Error loading map', this.canvas.width / 2, this.canvas.height / 2 - 20);
-                this.ctx.font = '14px Montserrat';
-                this.ctx.fillText('Map image not found. Please check image path:', this.canvas.width / 2, this.canvas.height / 2 + 10);
-                this.ctx.fillText(mapImagePath, this.canvas.width / 2, this.canvas.height / 2 + 30);
-                console.error('Map load error:', mapImagePath);
-            };
-            
             img.src = mapImagePath;
         }
 
@@ -188,9 +182,6 @@ class MapEditor {
         document.getElementById('colorPicker').addEventListener('input', (e) => {
             this.color = e.target.value;
         });
-
-        // Window resize
-        window.addEventListener('resize', this.setupCanvas.bind(this));
     }
 
     handleMouseDown(e) {
@@ -249,9 +240,11 @@ class MapEditor {
 
     getMousePos(e) {
         const rect = this.canvas.getBoundingClientRect();
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
         return {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
         };
     }
 
