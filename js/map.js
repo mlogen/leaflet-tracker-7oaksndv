@@ -6,21 +6,15 @@ class MapEditor {
         this.isPanning = false;
         this.tool = 'brush';
         this.color = '#FF0000';
-        this.transform = {
-            scale: 1,
-            offsetX: 0,
-            offsetY: 0
-        };
         this.lastMousePos = { x: 0, y: 0 };
         this.backgroundImage = null;
         // Create overlay canvas for cursor preview
         this.overlayCanvas = document.createElement('canvas');
         this.overlayCanvas.style.position = 'absolute';
-        this.overlayCanvas.style.pointerEvents = 'none';
         this.overlayCtx = this.overlayCanvas.getContext('2d');
         this.baseScale = 1;
-        this.brushSize = 10;
-        this.eraserSize = 20;
+        this.brushSize = 5;  // Fixed brush size
+        this.eraserSize = 10;  // Fixed eraser size
         this.lastDrawPoint = null;
         this.drawBuffer = [];
         this.drawInterval = null;
@@ -124,11 +118,8 @@ class MapEditor {
             
             img.onload = () => {
                 this.backgroundImage = img;
-                // Calculate base scale when image loads
-                this.baseScale = Math.min(
-                    this.canvas.width / img.width,
-                    this.canvas.height / img.height
-                );
+                // Calculate scale to fit width
+                this.baseScale = this.canvas.width / img.width;
                 this.redrawCanvas();
             };
             
@@ -179,30 +170,25 @@ class MapEditor {
 
     redrawCanvas() {
         // Clear main canvas
-        this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // Apply transformations
-        this.ctx.translate(this.transform.offsetX, this.transform.offsetY);
-        this.ctx.scale(this.transform.scale, this.transform.scale);
 
         // Draw background image
         if (this.backgroundImage) {
-            const x = (this.canvas.width / this.transform.scale - this.backgroundImage.width * this.baseScale) / 2;
-            const y = (this.canvas.height / this.transform.scale - this.backgroundImage.height * this.baseScale) / 2;
+            // Draw at calculated scale to fit width
+            const scaledHeight = this.backgroundImage.height * this.baseScale;
             this.ctx.drawImage(
                 this.backgroundImage,
-                x, y,
-                this.backgroundImage.width * this.baseScale,
-                this.backgroundImage.height * this.baseScale
+                0, 0,
+                this.canvas.width,
+                scaledHeight
             );
 
-            // Draw the drawing layer
+            // Draw the drawing layer at same scale
             this.ctx.drawImage(
                 this.drawingLayer,
-                x, y,
-                this.backgroundImage.width * this.baseScale,
-                this.backgroundImage.height * this.baseScale
+                0, 0,
+                this.canvas.width,
+                scaledHeight
             );
         }
     }
@@ -224,40 +210,8 @@ class MapEditor {
             this.color = e.target.value;
         });
 
-        // Zoom controls
-        document.getElementById('zoomIn').addEventListener('click', () => {
-            const rect = this.canvas.getBoundingClientRect();
-            this.zoom(1.1, rect.width / 2, rect.height / 2);
-        });
-        document.getElementById('zoomOut').addEventListener('click', () => {
-            const rect = this.canvas.getBoundingClientRect();
-            this.zoom(0.9, rect.width / 2, rect.height / 2);
-        });
-
-        this.canvas.addEventListener('wheel', (e) => {
-            e.preventDefault();
-            const rect = this.canvas.getBoundingClientRect();
-            const x = e.clientX - rect.left;
-            const y = e.clientY - rect.top;
-            if (e.deltaY < 0) {
-                this.zoom(1.1, x, y);
-            } else {
-                this.zoom(0.9, x, y);
-            }
-        });
-
         // Window resize
         window.addEventListener('resize', this.setupCanvas.bind(this));
-
-        // Brush size control
-        document.getElementById('brushSize').addEventListener('input', (e) => {
-            const size = parseInt(e.target.value);
-            if (this.tool === 'eraser') {
-                this.eraserSize = size * 2; // Eraser is double the brush size
-            } else {
-                this.brushSize = size;
-            }
-        });
     }
 
     handleMouseDown(e) {
@@ -309,9 +263,6 @@ class MapEditor {
             const deltaX = e.clientX - this.lastMousePos.x;
             const deltaY = e.clientY - this.lastMousePos.y;
             
-            this.transform.offsetX += deltaX;
-            this.transform.offsetY += deltaY;
-            
             this.lastMousePos = { x: e.clientX, y: e.clientY };
             this.redrawCanvas();
             return;
@@ -360,9 +311,9 @@ class MapEditor {
         
         // Apply same transform as main canvas
         this.cursorCtx.setTransform(
-            this.transform.scale, 0,
-            0, this.transform.scale,
-            this.transform.offsetX, this.transform.offsetY
+            this.baseScale, 0,
+            0, this.baseScale,
+            0, 0
         );
         
         if (this.tool === 'eraser') {
@@ -394,16 +345,16 @@ class MapEditor {
 
     getMapOffset() {
         return {
-            x: (this.canvas.width / this.transform.scale - this.backgroundImage.width * this.baseScale) / 2,
-            y: (this.canvas.height / this.transform.scale - this.backgroundImage.height * this.baseScale) / 2
+            x: (this.canvas.width - this.backgroundImage.width * this.baseScale) / 2,
+            y: (this.canvas.height - this.backgroundImage.height * this.baseScale) / 2
         };
     }
 
     getMousePos(e) {
         const rect = this.canvas.getBoundingClientRect();
         return {
-            x: (e.clientX - rect.left - this.transform.offsetX) / this.transform.scale,
-            y: (e.clientY - rect.top - this.transform.offsetY) / this.transform.scale
+            x: (e.clientX - rect.left) / this.baseScale,
+            y: (e.clientY - rect.top) / this.baseScale
         };
     }
 
@@ -414,37 +365,15 @@ class MapEditor {
         this.canvas.style.cursor = tool === 'pan' ? 'grab' : 'default';
     }
 
-    zoom(factor, mouseX, mouseY) {
-        // Switch to pan tool when zooming
-        this.setTool('pan');
-        
-        // Calculate new scale
-        const newScale = this.transform.scale * factor;
-        
-        // Limit zoom level
-        if (newScale < 0.5 || newScale > 5) return;
-
-        // Calculate mouse position relative to canvas
-        const rect = this.canvas.getBoundingClientRect();
-        const x = mouseX - rect.left;
-        const y = mouseY - rect.top;
-
-        // Calculate new offsets to zoom towards cursor
-        const scale = newScale / this.transform.scale;
-        this.transform.offsetX = x - (x - this.transform.offsetX) * scale;
-        this.transform.offsetY = y - (y - this.transform.offsetY) * scale;
-
-        this.transform.scale = newScale;
-
-        // Redraw canvas with new transformation
-        this.redrawCanvas();
-    }
-
     async saveToFirebase() {
         try {
             await this.mapRef.set({
                 mapData: this.drawingLayer.toDataURL(),
-                transform: this.transform,
+                transform: {
+                    scale: this.baseScale,
+                    offsetX: 0,
+                    offsetY: 0
+                },
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
         } catch (error) {
@@ -455,7 +384,11 @@ class MapEditor {
     async saveMapState() {
         // Save locally
         localStorage.setItem(window.location.pathname + '_mapData', this.canvas.toDataURL());
-        localStorage.setItem(window.location.pathname + '_transform', JSON.stringify(this.transform));
+        localStorage.setItem(window.location.pathname + '_transform', JSON.stringify({
+            scale: this.baseScale,
+            offsetX: 0,
+            offsetY: 0
+        }));
         
         // Save to Firebase
         await this.saveToFirebase();
@@ -468,13 +401,13 @@ class MapEditor {
                 this.drawingCtx.clearRect(0, 0, this.drawingLayer.width, this.drawingLayer.height);
                 this.drawingCtx.drawImage(img, 0, 0);
                 if (data.transform) {
-                    this.transform = data.transform;
+                    this.baseScale = data.transform.scale;
                 }
                 this.redrawCanvas();
             };
             img.src = data.mapData;
             if (data.transform) {
-                this.transform = data.transform;
+                this.baseScale = data.transform.scale;
             }
         }
     }
