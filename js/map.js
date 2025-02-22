@@ -203,7 +203,6 @@ class MapEditor {
         // Tool selection
         document.getElementById('brush').addEventListener('click', () => this.setTool('brush'));
         document.getElementById('eraser').addEventListener('click', () => this.setTool('eraser'));
-        document.getElementById('pan').addEventListener('click', () => this.setTool('pan'));
         
         // Color selection
         document.getElementById('colorPicker').addEventListener('input', (e) => {
@@ -216,21 +215,10 @@ class MapEditor {
 
     handleMouseDown(e) {
         const pos = this.getMousePos(e);
-        this.lastMousePos = { x: e.clientX, y: e.clientY };
-
-        if (this.tool === 'pan') {
-            this.isPanning = true;
-            this.canvas.style.cursor = 'grabbing';
-        } else {
-            this.startDrawing(e);
-        }
+        this.startDrawing(e);
     }
 
     handleMouseUp(e) {
-        if (this.isPanning) {
-            this.isPanning = false;
-            this.canvas.style.cursor = this.tool === 'pan' ? 'grab' : 'default';
-        }
         this.stopDrawing();
     }
 
@@ -259,17 +247,10 @@ class MapEditor {
     }
 
     draw(e) {
-        if (this.isPanning) {
-            const deltaX = e.clientX - this.lastMousePos.x;
-            const deltaY = e.clientY - this.lastMousePos.y;
-            
-            this.lastMousePos = { x: e.clientX, y: e.clientY };
-            this.redrawCanvas();
-            return;
-        }
-
         if (!this.isDrawing) {
-            this.updateCursor(e);
+            if (this.tool === 'eraser') {
+                this.updateEraserPreview(e);
+            }
             return;
         }
         
@@ -362,7 +343,7 @@ class MapEditor {
         this.tool = tool;
         document.querySelectorAll('.tool').forEach(btn => btn.classList.remove('active'));
         document.getElementById(tool).classList.add('active');
-        this.canvas.style.cursor = tool === 'pan' ? 'grab' : 'default';
+        this.canvas.style.cursor = 'default';
     }
 
     async saveToFirebase() {

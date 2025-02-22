@@ -15,12 +15,14 @@
 <body>
     <nav>
         <div class="nav-container">
-            <a href="../index.html">Swanley</a>
-            <a href="sevenoaks-north.html">Sevenoaks North</a>
-            <a href="sevenoaks-rural-ne.html">Sevenoaks Rural NE</a>
-            <a href="sevenoaks-town.html">Sevenoaks Town</a>
-            <a href="sevenoaks-west.html" class="active">Sevenoaks West</a>
-            <a href="sevenoaks-rural-s.html">Sevenoaks Rural S</a>
+            <div class="nav-links">
+                <a href="../index.html">Swanley</a>
+                <a href="sevenoaks-north.html">Sevenoaks North</a>
+                <a href="sevenoaks-rural-ne.html">Sevenoaks Rural NE</a>
+                <a href="sevenoaks-town.html">Sevenoaks Town</a>
+                <a href="sevenoaks-west.html" class="active">Sevenoaks West</a>
+                <a href="sevenoaks-rural-s.html">Sevenoaks Rural S</a>
+            </div>
         </div>
     </nav>
 
@@ -34,7 +36,6 @@
             <div class="map-tools">
                 <button id="brush" class="tool active">Brush</button>
                 <button id="eraser" class="tool">Eraser</button>
-                <button id="pan" class="tool">Pan</button>
                 <input type="color" id="colorPicker" value="#FF0000">
             </div>
             <canvas id="mapCanvas"></canvas>
@@ -42,7 +43,7 @@
     </main>
 
     <footer>
-        <div class="version">v1.14</div>
+        <div class="version">v1.15</div>
     </footer>
 
     <script src="../js/map.js"></script>
