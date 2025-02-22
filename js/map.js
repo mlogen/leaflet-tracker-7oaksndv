@@ -6,15 +6,10 @@ class MapEditor {
         this.tool = 'brush';
         this.color = '#FF0000';
         this.backgroundImage = null;
-        // Create overlay canvas for cursor preview
-        this.overlayCanvas = document.createElement('canvas');
-        this.overlayCanvas.style.position = 'absolute';
-        this.overlayCtx = this.overlayCanvas.getContext('2d');
         this.brushSize = 5;  // Fixed brush size
         this.eraserSize = 10;  // Fixed eraser size
         this.lastDrawPoint = null;
-        this.drawBuffer = [];
-        this.drawInterval = null;
+        
         // Create drawing layer
         this.drawingLayer = document.createElement('canvas');
         this.drawingCtx = this.drawingLayer.getContext('2d', {
@@ -74,24 +69,8 @@ class MapEditor {
     setupCanvas() {
         // Set canvas sizes
         this.canvas.width = this.canvas.offsetWidth;
-        this.canvas.height = this.canvas.offsetHeight;
-        this.overlayCanvas.width = this.canvas.width;
-        this.overlayCanvas.height = this.canvas.height;
         this.drawingLayer.width = this.canvas.width;
-        this.drawingLayer.height = this.canvas.height;
         
-        // Add overlay canvas to DOM
-        this.canvas.parentNode.appendChild(this.overlayCanvas);
-        this.overlayCanvas.style.left = this.canvas.offsetLeft + 'px';
-        this.overlayCanvas.style.top = this.canvas.offsetTop + 'px';
-
-        // Add cursor canvas to DOM
-        this.canvas.parentNode.appendChild(this.cursorCanvas);
-        this.cursorCanvas.width = this.canvas.width;
-        this.cursorCanvas.height = this.canvas.height;
-        this.cursorCanvas.style.left = this.canvas.offsetLeft + 'px';
-        this.cursorCanvas.style.top = this.canvas.offsetTop + 'px';
-
         // Set default styles
         this.ctx.lineJoin = 'round';
         this.ctx.lineCap = 'round';
@@ -103,11 +82,11 @@ class MapEditor {
         if (mapImagePath) {
             // Show loading state
             this.ctx.fillStyle = '#f0f0f0';
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.width * 0.75); // Temporary height
             this.ctx.fillStyle = '#666';
             this.ctx.textAlign = 'center';
             this.ctx.font = '16px Montserrat';
-            this.ctx.fillText('Loading map...', this.canvas.width / 2, this.canvas.height / 2);
+            this.ctx.fillText('Loading map...', this.canvas.width / 2, this.canvas.width * 0.375);
 
             const img = new Image();
             let retryCount = 0;
@@ -169,11 +148,19 @@ class MapEditor {
 
         // Draw background image
         if (this.backgroundImage) {
+            // Calculate dimensions that maintain aspect ratio
+            const scale = this.canvas.width / this.backgroundImage.width;
+            const scaledHeight = this.backgroundImage.height * scale;
+            
+            // Update canvas height to match scaled image
+            this.canvas.height = scaledHeight;
+            this.drawingLayer.height = scaledHeight;
+            
             this.ctx.drawImage(
                 this.backgroundImage,
                 0, 0,
                 this.canvas.width,
-                this.canvas.height
+                scaledHeight
             );
 
             // Draw the drawing layer at same scale
@@ -181,7 +168,7 @@ class MapEditor {
                 this.drawingLayer,
                 0, 0,
                 this.canvas.width,
-                this.canvas.height
+                scaledHeight
             );
         }
     }
@@ -232,6 +219,7 @@ class MapEditor {
         this.drawingCtx.beginPath();
         this.drawingCtx.moveTo(pos.x, pos.y);
         this.lastDrawPoint = pos;
+        this.redrawCanvas();
     }
 
     draw(e) {
@@ -246,41 +234,9 @@ class MapEditor {
             this.drawingCtx.moveTo(this.lastDrawPoint.x, this.lastDrawPoint.y);
             this.drawingCtx.lineTo(pos.x, pos.y);
             this.drawingCtx.stroke();
+            this.redrawCanvas();
         }
         this.lastDrawPoint = pos;
-        this.needsRedraw = true;
-    }
-
-    updateCursor(e) {
-        const pos = this.getMousePos(e);
-        
-        // Clear cursor canvas
-        this.cursorCtx.clearRect(0, 0, this.cursorCanvas.width, this.cursorCanvas.height);
-        
-        // Apply same transform as main canvas
-        this.cursorCtx.setTransform(
-            1, 0,
-            0, 1,
-            0, 0
-        );
-        
-        if (this.tool === 'eraser') {
-            // Draw eraser cursor
-            this.cursorCtx.beginPath();
-            this.cursorCtx.arc(pos.x, pos.y, this.eraserSize/2, 0, Math.PI * 2);
-            this.cursorCtx.strokeStyle = '#000';
-            this.cursorCtx.stroke();
-            this.cursorCtx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-            this.cursorCtx.fill();
-        } else if (this.tool === 'brush') {
-            // Draw brush cursor
-            this.cursorCtx.beginPath();
-            this.cursorCtx.arc(pos.x, pos.y, this.brushSize/2, 0, Math.PI * 2);
-            this.cursorCtx.strokeStyle = this.color;
-            this.cursorCtx.stroke();
-            this.cursorCtx.fillStyle = `${this.color}33`;
-            this.cursorCtx.fill();
-        }
     }
 
     stopDrawing() {
