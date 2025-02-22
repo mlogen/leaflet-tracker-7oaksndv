@@ -1,18 +1,23 @@
 :root {
     --primary-color: aqua;
     --secondary-color: white;
+    --text-color: #333;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --button-hover: #00b3b3;
 }
 
 body {
     margin: 0;
     padding: 0;
-    font-family: Arial, sans-serif;
+    font-family: 'Montserrat', sans-serif;
     background-color: var(--secondary-color);
+    color: var(--text-color);
 }
 
 nav {
     background-color: var(--primary-color);
     padding: 1rem;
+    box-shadow: 0 2px 4px var(--shadow-color);
 }
 
 .nav-container {
@@ -21,12 +26,15 @@ nav {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    text-align: center;
 }
 
 .nav-links {
     display: flex;
     flex-wrap: wrap;
     gap: 1rem;
+    flex: 1;
+    justify-content: center;
 }
 
 nav a {
@@ -34,16 +42,23 @@ nav a {
     text-decoration: none;
     padding: 0.5rem 1rem;
     border-radius: 4px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    white-space: nowrap;
 }
 
 nav a:hover, nav a.active {
     background-color: var(--secondary-color);
+    box-shadow: 0 2px 4px var(--shadow-color);
 }
 
 .version {
     color: black;
     font-size: 0.9rem;
     padding: 0.5rem;
+    font-weight: 500;
+    position: absolute;
+    right: 1rem;
 }
 
 main {
@@ -54,16 +69,32 @@ main {
 
 .area-info {
     margin-bottom: 2rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.area-info h1 {
+    margin-top: 0;
+    color: var(--text-color);
+    font-weight: 600;
 }
 
 .map-container {
     position: relative;
+    background-color: white;
+    padding: 1rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow-color);
 }
 
 .map-tools {
     margin-bottom: 1rem;
     display: flex;
     gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
 }
 
 .tool {
@@ -72,18 +103,39 @@ main {
     border: none;
     border-radius: 4px;
     cursor: pointer;
+    font-family: 'Montserrat', sans-serif;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 4px var(--shadow-color);
+}
+
+.tool:hover {
+    background-color: var(--button-hover);
+    transform: translateY(-1px);
 }
 
 .tool.active {
     background-color: darkturquoise;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-#pan.active {
-    cursor: grab;
+#colorPicker {
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
-#pan.active:active {
-    cursor: grabbing;
+#zoomIn, #zoomOut {
+    font-size: 1.2rem;
+    font-weight: bold;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 #mapCanvas {
@@ -92,4 +144,10 @@ main {
     border: 2px solid var(--primary-color);
     background-color: #f0f0f0;
     cursor: default;
+    border-radius: 4px;
+    transition: border-color 0.3s ease;
+}
+
+#mapCanvas:hover {
+    border-color: var(--button-hover);
 } 

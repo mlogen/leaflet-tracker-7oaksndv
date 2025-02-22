@@ -73,6 +73,10 @@ class MapEditor {
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
+        // Save the current global alpha
+        const currentAlpha = this.drawingCtx.globalAlpha;
+        this.drawingCtx.globalAlpha = 1;
+
         // Apply transformations
         this.ctx.translate(this.transform.offsetX, this.transform.offsetY);
         this.ctx.scale(this.transform.scale, this.transform.scale);
@@ -89,13 +93,18 @@ class MapEditor {
             );
 
             // Draw the drawing canvas with the same transform
+            this.ctx.globalAlpha = 0.5;  // Set consistent transparency for all strokes
             this.ctx.drawImage(
                 this.drawingCanvas,
                 x, y,
                 this.backgroundImage.width * this.baseScale,
                 this.backgroundImage.height * this.baseScale
             );
+            this.ctx.globalAlpha = 1;  // Reset transparency
         }
+
+        // Restore the previous global alpha
+        this.drawingCtx.globalAlpha = currentAlpha;
     }
 
     setupEventListeners() {
@@ -167,7 +176,6 @@ class MapEditor {
         
         // Set line width based on tool
         this.drawingCtx.lineWidth = this.tool === 'eraser' ? 20 : 10;
-        this.drawingCtx.globalAlpha = this.tool === 'eraser' ? 1 : 0.5;
         this.drawingCtx.beginPath();
         this.drawingCtx.moveTo(
             (pos.x - this.getMapOffset().x) * (this.drawingCanvas.width / (this.backgroundImage.width * this.baseScale)),
@@ -191,9 +199,9 @@ class MapEditor {
         if (!this.isDrawing) return;
         
         const pos = this.getMousePos(e);
-        // Set composite operation and style for eraser/brush
         this.drawingCtx.globalCompositeOperation = this.tool === 'eraser' ? 'destination-out' : 'source-over';
         this.drawingCtx.strokeStyle = this.tool === 'eraser' ? '#000000' : this.color;
+        this.drawingCtx.globalAlpha = 1;  // Draw at full opacity on drawing canvas
         this.drawingCtx.lineTo(
             (pos.x - this.getMapOffset().x) * (this.drawingCanvas.width / (this.backgroundImage.width * this.baseScale)),
             (pos.y - this.getMapOffset().y) * (this.drawingCanvas.height / (this.backgroundImage.height * this.baseScale))
@@ -213,7 +221,6 @@ class MapEditor {
     stopDrawing() {
         if (this.isDrawing) {
             this.isDrawing = false;
-            this.drawingCtx.globalAlpha = 1; // Reset alpha after drawing
             this.saveMapState();
         }
     }
