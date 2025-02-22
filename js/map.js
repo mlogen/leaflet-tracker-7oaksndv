@@ -21,12 +21,16 @@ class MapEditor {
         const app = firebase.initializeApp(firebaseConfig);
         this.db = firebase.database();
         // Sanitize the path for Firebase
-        const sanitizedPath = window.location.pathname
-            .replace(/\//g, '_')
-            .replace(/\./g, '_')
-            .replace(/[\[\]#$]/g, '_')
-            .replace(/^_/, ''); // Remove leading underscore
+        // Create a unique, valid path for each page
+        const pagePath = window.location.pathname;
+        const sanitizedPath = pagePath === '/' || pagePath === '/index.html' 
+            ? 'swanley'
+            : pagePath.split('/').pop().replace('.html', '').toLowerCase();
+        
         this.mapRef = this.db.ref('maps/' + sanitizedPath);
+
+        // Add debug logging
+        console.log('Firebase path:', 'maps/' + sanitizedPath);
 
         // Listen for real-time updates
         this.mapRef.on('value', (snapshot) => {
@@ -61,6 +65,11 @@ class MapEditor {
         const mapImagePath = this.canvas.dataset.mapImage;
         if (mapImagePath) {
             const img = new Image();
+            console.log('Loading map image from:', mapImagePath);
+            
+            // Add crossOrigin if needed
+            img.crossOrigin = "Anonymous";
+            
             img.onload = () => {
                 this.backgroundImage = img;
                 // Calculate base scale when image loads
@@ -69,8 +78,26 @@ class MapEditor {
                     this.canvas.height / img.height
                 );
                 this.redrawCanvas();
+                console.log('Map image loaded successfully');
             };
+            
+            img.onerror = (error) => {
+                console.error('Error loading map image:', {
+                    path: mapImagePath,
+                    error: error,
+                    exists: typeof error.path !== 'undefined'
+                });
+            };
+            
             img.src = mapImagePath;
+            
+            // Double check if image path is correct
+            fetch(mapImagePath)
+                .then(response => {
+                    if (!response.ok) throw new Error('Image not found');
+                    console.log('Image exists at path');
+                })
+                .catch(error => console.error('Image fetch error:', error));
         }
     }
 
