@@ -1,7 +1,7 @@
 class MapEditor {
     constructor() {
         this.canvas = document.getElementById('mapCanvas');
-        this.ctx = this.canvas.getContext('2d');
+        this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
         this.isDrawing = false;
         this.isPanning = false;
         this.tool = 'brush';
@@ -13,9 +13,13 @@ class MapEditor {
         };
         this.lastMousePos = { x: 0, y: 0 };
         this.backgroundImage = null;
-        this.drawingCanvas = document.createElement('canvas');
-        this.drawingCtx = this.drawingCanvas.getContext('2d');
-        this.baseScale = 1; // Store the initial scale of the map
+        this.cursorCanvas = document.createElement('canvas');
+        this.cursorCtx = this.cursorCanvas.getContext('2d');
+        this.baseScale = 1;
+        this.brushSize = 10;
+        this.eraserSize = 20;
+        this.drawingLayer = document.createElement('canvas');
+        this.drawingCtx = this.drawingLayer.getContext('2d');
 
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
@@ -57,21 +61,25 @@ class MapEditor {
     }
 
     setupCanvas() {
-        // Set canvas size to match display size
+        // Set canvas sizes
         this.canvas.width = this.canvas.offsetWidth;
         this.canvas.height = this.canvas.offsetHeight;
-        this.drawingCanvas.width = this.canvas.width;
-        this.drawingCanvas.height = this.canvas.height;
+        this.overlayCanvas.width = this.canvas.width;
+        this.overlayCanvas.height = this.canvas.height;
+        this.drawingLayer.width = this.canvas.width;
+        this.drawingLayer.height = this.canvas.height;
+        
+        // Add overlay canvas to DOM
+        this.canvas.parentNode.appendChild(this.overlayCanvas);
+        this.overlayCanvas.style.left = this.canvas.offsetLeft + 'px';
+        this.overlayCanvas.style.top = this.canvas.offsetTop + 'px';
 
         // Set default styles
         this.ctx.lineJoin = 'round';
         this.ctx.lineCap = 'round';
-        this.ctx.lineWidth = 10;
-        
         this.drawingCtx.lineJoin = 'round';
         this.drawingCtx.lineCap = 'round';
-        this.drawingCtx.lineWidth = 10;
-
+        
         // Load background map image if specified
         const mapImagePath = this.canvas.dataset.mapImage;
         if (mapImagePath) {
@@ -133,15 +141,11 @@ class MapEditor {
         this.ctx.setTransform(1, 0, 0, 1, 0, 0);
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Save the current global alpha
-        const currentAlpha = this.drawingCtx.globalAlpha;
-        this.drawingCtx.globalAlpha = 1;
-
         // Apply transformations
         this.ctx.translate(this.transform.offsetX, this.transform.offsetY);
         this.ctx.scale(this.transform.scale, this.transform.scale);
 
-        // Draw background image if available
+        // Draw background image
         if (this.backgroundImage) {
             const x = (this.canvas.width / this.transform.scale - this.backgroundImage.width * this.baseScale) / 2;
             const y = (this.canvas.height / this.transform.scale - this.backgroundImage.height * this.baseScale) / 2;
@@ -152,19 +156,14 @@ class MapEditor {
                 this.backgroundImage.height * this.baseScale
             );
 
-            // Draw the drawing canvas with the same transform
-            this.ctx.globalAlpha = 0.5;  // Set consistent transparency for all strokes
+            // Draw the drawing layer
             this.ctx.drawImage(
-                this.drawingCanvas,
+                this.drawingLayer,
                 x, y,
                 this.backgroundImage.width * this.baseScale,
                 this.backgroundImage.height * this.baseScale
             );
-            this.ctx.globalAlpha = 1;  // Reset transparency
         }
-
-        // Restore the previous global alpha
-        this.drawingCtx.globalAlpha = currentAlpha;
     }
 
     setupEventListeners() {
@@ -234,21 +233,16 @@ class MapEditor {
         this.isDrawing = true;
         const pos = this.getMousePos(e);
         
-        // Configure drawing context based on tool
+        this.ctx.beginPath();
         if (this.tool === 'eraser') {
-            this.drawingCtx.lineWidth = 20;
-            this.drawingCtx.globalCompositeOperation = 'destination-out';
+            this.ctx.globalCompositeOperation = 'destination-out';
+            this.ctx.lineWidth = this.eraserSize;
         } else {
-            this.drawingCtx.lineWidth = 10;
-            this.drawingCtx.globalCompositeOperation = 'source-over';
-            this.drawingCtx.strokeStyle = this.color;
+            this.ctx.globalCompositeOperation = 'source-over';
+            this.ctx.strokeStyle = this.color;
+            this.ctx.lineWidth = this.brushSize;
         }
-        
-        this.drawingCtx.beginPath();
-        this.drawingCtx.moveTo(
-            (pos.x - this.getMapOffset().x) * (this.drawingCanvas.width / (this.backgroundImage.width * this.baseScale)),
-            (pos.y - this.getMapOffset().y) * (this.drawingCanvas.height / (this.backgroundImage.height * this.baseScale))
-        );
+        this.ctx.moveTo(pos.x, pos.y);
     }
 
     draw(e) {
@@ -264,36 +258,48 @@ class MapEditor {
             return;
         }
 
-        if (!this.isDrawing) return;
+        if (!this.isDrawing) {
+            if (this.tool === 'eraser') {
+                this.updateEraserPreview(e);
+            }
+            return;
+        }
         
         const pos = this.getMousePos(e);
-        // Maintain eraser settings during the stroke
-        if (this.tool === 'eraser') {
-            this.drawingCtx.globalCompositeOperation = 'destination-out';
-        } else {
-            this.drawingCtx.globalCompositeOperation = 'source-over';
-            this.drawingCtx.strokeStyle = this.color;
-        }
-        this.drawingCtx.globalAlpha = 1;  // Draw at full opacity on drawing canvas
-        this.drawingCtx.lineTo(
-            (pos.x - this.getMapOffset().x) * (this.drawingCanvas.width / (this.backgroundImage.width * this.baseScale)),
-            (pos.y - this.getMapOffset().y) * (this.drawingCanvas.height / (this.backgroundImage.height * this.baseScale))
-        );
+        this.drawingCtx.lineTo(pos.x, pos.y);
         this.drawingCtx.stroke();
-        
-        // Start a new path to prevent connecting lines
         this.drawingCtx.beginPath();
-        this.drawingCtx.moveTo(
-            (pos.x - this.getMapOffset().x) * (this.drawingCanvas.width / (this.backgroundImage.width * this.baseScale)),
-            (pos.y - this.getMapOffset().y) * (this.drawingCanvas.height / (this.backgroundImage.height * this.baseScale))
-        );
+        this.drawingCtx.moveTo(pos.x, pos.y);
         
         this.redrawCanvas();
+    }
+
+    updateEraserPreview(e) {
+        const pos = this.getMousePos(e);
+        
+        // Clear overlay
+        this.overlayCtx.clearRect(0, 0, this.overlayCanvas.width, this.overlayCanvas.height);
+        
+        // Transform overlay context to match main canvas
+        this.overlayCtx.setTransform(
+            this.transform.scale, 0,
+            0, this.transform.scale,
+            this.transform.offsetX, this.transform.offsetY
+        );
+        
+        // Draw eraser preview
+        this.overlayCtx.beginPath();
+        this.overlayCtx.arc(pos.x, pos.y, this.eraserSize/2, 0, Math.PI * 2);
+        this.overlayCtx.strokeStyle = '#000';
+        this.overlayCtx.stroke();
+        this.overlayCtx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+        this.overlayCtx.fill();
     }
 
     stopDrawing() {
         if (this.isDrawing) {
             this.isDrawing = false;
+            this.ctx.globalCompositeOperation = 'source-over';
             this.saveMapState();
         }
     }
@@ -349,7 +355,7 @@ class MapEditor {
     async saveToFirebase() {
         try {
             await this.mapRef.set({
-                mapData: this.drawingCanvas.toDataURL(),
+                mapData: this.canvas.toDataURL(),
                 transform: this.transform,
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
@@ -360,7 +366,7 @@ class MapEditor {
 
     async saveMapState() {
         // Save locally
-        localStorage.setItem(window.location.pathname + '_mapData', this.drawingCanvas.toDataURL());
+        localStorage.setItem(window.location.pathname + '_mapData', this.canvas.toDataURL());
         localStorage.setItem(window.location.pathname + '_transform', JSON.stringify(this.transform));
         
         // Save to Firebase
@@ -371,14 +377,16 @@ class MapEditor {
         if (data.mapData) {
             const img = new Image();
             img.onload = () => {
-                this.drawingCtx.clearRect(0, 0, this.drawingCanvas.width, this.drawingCanvas.height);
-                this.drawingCtx.drawImage(img, 0, 0);
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.drawImage(img, 0, 0);
                 if (data.transform) {
                     this.transform = data.transform;
                 }
-                this.redrawCanvas();
             };
             img.src = data.mapData;
+            if (data.transform) {
+                this.transform = data.transform;
+            }
         }
     }
 }
