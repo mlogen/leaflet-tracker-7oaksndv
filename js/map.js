@@ -21,15 +21,13 @@ class MapEditor {
         this.drawingCtx = this.drawingLayer.getContext('2d');
 
         // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        this.db = firebase.database();
+        firebase.initializeApp(firebaseConfig);
         this.setupFirebase();
         this.setupCanvas();
         this.setupEventListeners();
     }
 
     setupFirebase() {
-        // Create a unique identifier for each page
         const pathMap = {
             '/': 'swanley',
             '/index.html': 'swanley',
@@ -41,7 +39,7 @@ class MapEditor {
         };
         
         const pageId = pathMap[window.location.pathname] || 'default';
-        this.mapRef = this.db.ref('maps/' + pageId);
+        this.mapRef = firebase.database().ref('maps/' + pageId);
 
         // Listen for real-time updates
         this.mapRef.on('value', (snapshot) => {
@@ -54,32 +52,19 @@ class MapEditor {
     }
 
     setupCanvas() {
-        const container = this.canvas.parentElement;
-        const maxWidth = container.clientWidth - 40;
+        // Set fixed dimensions
+        this.canvas.width = 1200;
+        this.canvas.height = 800;
+        this.drawingLayer.width = 1200;
+        this.drawingLayer.height = 800;
         
         const mapImagePath = this.canvas.dataset.mapImage;
         if (mapImagePath) {
             const img = new Image();
-            // Always set crossOrigin
             img.crossOrigin = 'anonymous';
             img.onload = () => {
                 this.backgroundImage = img;
-                
-                // Calculate scale to fit width while maintaining aspect ratio
-                const scale = Math.min(maxWidth / img.width, 1);
-                const scaledHeight = img.height * scale;
-                const scaledWidth = img.width * scale;
-                
-                // Set dimensions
-                this.canvas.width = scaledWidth;
-                this.canvas.height = scaledHeight;
-                this.drawingLayer.width = scaledWidth;
-                this.drawingLayer.height = scaledHeight;
-                
-                // Initial draw
                 this.redrawCanvas();
-               
-                // Load any existing drawings after background is loaded
                 this.loadExistingDrawing();
             };
             img.onerror = (error) => {
@@ -113,9 +98,6 @@ class MapEditor {
         document.getElementById('colorPicker').addEventListener('input', (e) => {
             this.color = e.target.value;
         });
-
-        // Handle window resize
-        window.addEventListener('resize', this.handleResize.bind(this));
     }
 
     startDrawing(e) {
@@ -193,22 +175,8 @@ class MapEditor {
         this.canvas.style.cursor = 'default';
     }
 
-    async saveToFirebase() {
-        try {
-            await this.mapRef.set({
-                mapData: this.canvas.toDataURL(),
-                timestamp: firebase.database.ServerValue.TIMESTAMP
-            });
-        } catch (error) {
-            console.error('Failed to save to Firebase:', error);
-        }
-    }
-
     async saveMapState() {
         try {
-            // Save locally
-            localStorage.setItem(window.location.pathname + '_mapData', this.drawingLayer.toDataURL());
-            
             // Save to Firebase
             await this.mapRef.set({
                 mapData: this.drawingLayer.toDataURL(),
@@ -233,50 +201,6 @@ class MapEditor {
                 console.error('Error loading from Firebase:', error);
             };
             img.src = data.mapData;
-        }
-    }
-
-    cleanup() {
-        if (this.requestAnimationId) {
-            cancelAnimationFrame(this.requestAnimationId);
-        }
-    }
-
-    handleResize() {
-        if (this.backgroundImage) {
-            // Get container dimensions
-            const container = this.canvas.parentElement;
-            const maxWidth = container.clientWidth - 40;
-            
-            // Calculate scale while maintaining aspect ratio
-            const scale = Math.min(maxWidth / this.backgroundImage.width, 1);
-            const scaledHeight = this.backgroundImage.height * scale;
-            const scaledWidth = this.backgroundImage.width * scale;
-            
-            // Create temporary canvas to store current drawing
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = this.drawingLayer.width;
-            tempCanvas.height = this.drawingLayer.height;
-            const tempCtx = tempCanvas.getContext('2d');
-            tempCtx.drawImage(this.drawingLayer, 0, 0);
-            
-            // Update dimensions
-            this.canvas.width = scaledWidth;
-            this.canvas.height = scaledHeight;
-            this.drawingLayer.width = scaledWidth;
-            this.drawingLayer.height = scaledHeight;
-            
-            // Draw background
-            this.ctx.drawImage(
-                this.backgroundImage,
-                0, 0,
-                scaledWidth,
-                scaledHeight
-            );
-            
-            // Draw existing drawing content scaled to new size
-            this.drawingCtx.drawImage(tempCanvas, 0, 0, scaledWidth, scaledHeight);
-            this.redrawCanvas();
         }
     }
 

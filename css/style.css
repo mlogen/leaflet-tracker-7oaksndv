@@ -125,11 +125,12 @@ main {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    overflow: auto;
+    overflow: scroll;
     padding: 1rem;
-    width: 100%;
+    width: 1250px;
+    height: 900px;
     box-sizing: border-box;
-    -webkit-overflow-scrolling: touch;
+    margin: 0 auto;  /* Center the container */
 }
 
 .map-tools {
@@ -236,15 +237,13 @@ main {
 }
 
 #mapCanvas {
-    max-width: 100%;
-    height: auto;
+    width: 1200px;  /* Fixed width accounting for padding */
+    height: 800px;  /* Fixed height leaving room for tools */
     border: 2px solid var(--primary-color);
     background-color: #f0f0f0;
     cursor: default;
     border-radius: 4px;
     transition: border-color 0.3s ease;
-    touch-action: none;
-    -webkit-tap-highlight-color: transparent;
     display: block;
 }
 
