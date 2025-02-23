@@ -9,7 +9,9 @@ class MapEditor {
         this.brushSize = 10;
         this.eraserSize = 30;
         this.lastDrawPoint = null;
-        this.isErasing = false;  // Track eraser state
+        this.isErasing = false;
+        this.lastEraserTime = 0;
+        this.minEraserDelay = 100; // Minimum time between eraser actions in ms
         
         // Create a separate layer for drawings
         this.drawingLayer = document.createElement('canvas');
@@ -172,6 +174,16 @@ class MapEditor {
     }
 
     handleStart(e) {
+        const now = Date.now();
+        
+        // Prevent rapid eraser clicks
+        if (this.tool === 'eraser') {
+            if (now - this.lastEraserTime < this.minEraserDelay) {
+                return;
+            }
+            this.lastEraserTime = now;
+        }
+        
         this.isDrawing = true;
         const pos = this.getPointerPos(e);
         this.lastDrawPoint = pos;
