@@ -58,6 +58,10 @@ class MapEditor {
     }
 
     setupCanvas() {
+        // Set initial canvas width
+        this.canvas.width = this.canvas.offsetWidth;
+        this.drawingLayer.width = this.canvas.width;
+        
         // Set default styles
         this.ctx.lineJoin = 'round';
         this.ctx.lineCap = 'round';
@@ -70,15 +74,11 @@ class MapEditor {
             const img = new Image();
             img.onload = () => {
                 this.backgroundImage = img;
-                
-                // Set exact dimensions from original image
-                this.canvas.width = img.naturalWidth;
-                this.canvas.height = img.naturalHeight;
-                this.drawingLayer.width = img.naturalWidth;
-                this.drawingLayer.height = img.naturalHeight;
-                
-                // Draw background at exact size
-                this.ctx.drawImage(this.backgroundImage, 0, 0);
+                // Calculate scale to fit width
+                const scale = this.canvas.width / img.width;
+                const scaledHeight = img.height * scale;
+                this.canvas.height = scaledHeight;
+                this.drawingLayer.height = scaledHeight;
                 this.redrawCanvas();
             };
             img.src = mapImagePath;
@@ -105,15 +105,18 @@ class MapEditor {
 
         // Draw background image
         if (this.backgroundImage) {
-            // Draw at original size
+            // Draw scaled to fit width
+            const scale = this.canvas.width / this.backgroundImage.width;
+            const scaledHeight = this.backgroundImage.height * scale;
+            
             this.ctx.drawImage(
                 this.backgroundImage,
                 0, 0,
-                this.backgroundImage.naturalWidth,
-                this.backgroundImage.naturalHeight
+                this.canvas.width,
+                scaledHeight
             );
 
-            // Draw the drawing layer at same size
+            // Draw the drawing layer at same scale
             this.ctx.drawImage(this.drawingLayer, 0, 0);
         }
     }
