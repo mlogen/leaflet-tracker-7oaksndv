@@ -25,22 +25,22 @@ class MapEditor {
         this.drawingLayer = document.createElement('canvas');
         this.drawingCtx = this.drawingLayer.getContext('2d');
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
+        // Initialize Firebase only once
+        if (!window.firebaseApp) {
+            window.firebaseApp = firebase.initializeApp(firebaseConfig);
+        }
+        
         this.setupFirebase();
         this.setupCanvas();
         this.setupEventListeners();
     }
 
     setupFirebase() {
-        const pathMap = {
-            '/': 'swanley',
-            '/index.html': 'swanley',
-            '/pages/hextable.html': 'hextable'
-        };
+        // Get the page name from the path
+        const pageName = window.location.pathname.includes('hextable') ? 'hextable' : 'swanley';
         
-        const pageId = pathMap[window.location.pathname] || 'default';
-        this.mapRef = firebase.database().ref('maps/' + pageId);
+        // Create separate reference for each map
+        this.mapRef = firebase.database().ref('maps/' + pageName);
 
         // Listen for real-time updates
         this.mapRef.on('value', (snapshot) => {
