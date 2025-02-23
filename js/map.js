@@ -146,11 +146,14 @@ class MapEditor {
             this.handleMouseUp(e);
         });
 
-        // Prevent double-click from clearing canvas
-        this.canvas.addEventListener('dblclick', (e) => {
-            e.preventDefault();
-            return false;
-        });
+        // Completely disable double-click
+        this.canvas.style.userSelect = 'none';
+        this.canvas.style.webkitUserSelect = 'none';
+        this.canvas.addEventListener('selectstart', (e) => e.preventDefault());
+        this.canvas.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
+        this.canvas.addEventListener('mousedown', (e) => {
+            if (e.detail > 1) e.preventDefault();
+        }, { passive: false });
 
         // Tool selection
         document.getElementById('brush').addEventListener('click', () => this.setTool('brush'));
@@ -277,21 +280,36 @@ class MapEditor {
 
     handleResize() {
         if (this.backgroundImage) {
-            // Store current canvas state
-            const currentState = this.canvas.toDataURL();
+            // Get the container width
+            const containerWidth = this.canvas.parentElement.clientWidth - 40; // Account for padding
             
-            // Resize canvas
-            this.canvas.width = this.canvas.offsetWidth;
-            const scale = this.canvas.width / this.backgroundImage.width;
-            const scaledHeight = this.backgroundImage.height * scale;
-            this.canvas.height = scaledHeight;
+            // Calculate scale while maintaining aspect ratio
+            const scale = containerWidth / this.backgroundImage.width;
             
-            // Restore canvas state
+            // Store current drawing
+            const drawingData = this.drawingLayer.toDataURL();
+            
+            // Update canvas and layer dimensions
+            this.canvas.width = containerWidth;
+            this.canvas.height = this.backgroundImage.height * scale;
+            this.drawingLayer.width = containerWidth;
+            this.drawingLayer.height = this.backgroundImage.height * scale;
+            
+            // Redraw background
+            this.ctx.drawImage(
+                this.backgroundImage,
+                0, 0,
+                containerWidth,
+                this.backgroundImage.height * scale
+            );
+            
+            // Restore drawing
             const img = new Image();
             img.onload = () => {
-                this.ctx.drawImage(img, 0, 0, this.canvas.width, scaledHeight);
+                this.drawingCtx.drawImage(img, 0, 0);
+                this.redrawCanvas();
             };
-            img.src = currentState;
+            img.src = drawingData;
         }
     }
 }
