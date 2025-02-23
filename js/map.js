@@ -74,16 +74,6 @@ class MapEditor {
             parseFloat(getComputedStyle(container).paddingLeft) - 
             parseFloat(getComputedStyle(container).paddingRight);
         
-        // Set initial dimensions
-        this.canvas.width = containerWidth;
-        this.drawingLayer.width = containerWidth;
-        
-        // Set default styles
-        this.ctx.lineJoin = 'round';
-        this.ctx.lineCap = 'round';
-        this.drawingCtx.lineJoin = 'round';
-        this.drawingCtx.lineCap = 'round';
-        
         // Load background map image if specified
         const mapImagePath = this.canvas.dataset.mapImage;
         if (mapImagePath) {
@@ -91,20 +81,29 @@ class MapEditor {
             img.onload = () => {
                 this.backgroundImage = img;
                 
-                // Calculate scale to maintain aspect ratio
-                const scale = containerWidth / img.width;
-                const scaledHeight = img.height * scale;
-                
-                // Set dimensions
-                this.canvas.height = scaledHeight;
-                this.drawingLayer.height = scaledHeight;
+                // Set canvas dimensions based on image size
+                if (this.isMobileDevice) {
+                    // On mobile, maintain image dimensions
+                    this.canvas.width = img.width;
+                    this.canvas.height = img.height;
+                    this.drawingLayer.width = img.width;
+                    this.drawingLayer.height = img.height;
+                } else {
+                    // On desktop, scale to container
+                    const scale = containerWidth / img.width;
+                    const scaledHeight = img.height * scale;
+                    this.canvas.width = containerWidth;
+                    this.canvas.height = scaledHeight;
+                    this.drawingLayer.width = containerWidth;
+                    this.drawingLayer.height = scaledHeight;
+                }
                 
                 // Draw background at exact size
                 this.ctx.drawImage(
                     this.backgroundImage,
                     0, 0,
-                    containerWidth,
-                    scaledHeight
+                    this.canvas.width,
+                    this.canvas.height
                 );
                 
                 // Load any existing drawing data
@@ -263,6 +262,9 @@ class MapEditor {
 
     handleResize() {
         if (this.backgroundImage) {
+            // Skip resize handling on mobile
+            if (this.isMobileDevice) return;
+            
             // Get the actual container width
             const container = this.canvas.parentElement;
             const containerWidth = container.clientWidth - 
