@@ -128,6 +128,30 @@ class MapEditor {
         this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
         this.canvas.addEventListener('mouseout', this.handleMouseUp.bind(this));
 
+        // Touch events for mobile
+        this.canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent scrolling while drawing
+            const touch = e.touches[0];
+            this.handleMouseDown(touch);
+        });
+        
+        this.canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const touch = e.touches[0];
+            this.draw(touch);
+        });
+        
+        this.canvas.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            this.handleMouseUp(e);
+        });
+
+        // Prevent double-click from clearing canvas
+        this.canvas.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            return false;
+        });
+
         // Tool selection
         document.getElementById('brush').addEventListener('click', () => this.setTool('brush'));
         document.getElementById('eraser').addEventListener('click', () => this.setTool('eraser'));
@@ -136,6 +160,10 @@ class MapEditor {
         document.getElementById('colorPicker').addEventListener('input', (e) => {
             this.color = e.target.value;
         });
+
+        // Handle window resize
+        window.addEventListener('resize', this.handleResize.bind(this));
+        window.addEventListener('orientationchange', this.handleResize.bind(this));
     }
 
     handleMouseDown(e) {
@@ -194,9 +222,12 @@ class MapEditor {
         // Calculate the scale between displayed size and actual size
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
+        // Handle both mouse and touch events
+        const clientX = e.clientX || e.pageX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
+        const clientY = e.clientY || e.pageY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
         return {
-            x: (e.clientX - rect.left) * scaleX,
-            y: (e.clientY - rect.top) * scaleY
+            x: (clientX - rect.left) * scaleX,
+            y: (clientY - rect.top) * scaleY
         };
     }
 
