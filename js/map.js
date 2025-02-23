@@ -63,34 +63,71 @@ class MapEditor {
             img.crossOrigin = 'anonymous';
             img.onload = () => {
                 this.backgroundImage = img;
-                // Log original image dimensions
-                console.log('Original Image Dimensions:', {
+                
+                // Log original dimensions
+                console.log('Original Image:', {
                     width: img.width,
-                    height: img.height
+                    height: img.height,
+                    naturalWidth: img.naturalWidth,
+                    naturalHeight: img.naturalHeight
                 });
 
+                // Set canvas to exact image dimensions
                 this.canvas.width = img.width;
                 this.canvas.height = img.height;
                 this.drawingLayer.width = img.width;
                 this.drawingLayer.height = img.height;
 
-                // Log canvas dimensions
-                console.log('Canvas Dimensions:', {
-                    width: this.canvas.width,
-                    height: this.canvas.height,
-                    displayWidth: this.canvas.offsetWidth,
-                    displayHeight: this.canvas.offsetHeight,
-                    clientRect: this.canvas.getBoundingClientRect()
-                });
+                // Verify canvas dimensions match image exactly
+                const verifyDimensions = () => {
+                    const computed = window.getComputedStyle(this.canvas);
+                    console.log('Canvas Verification:', {
+                        canvas: {
+                            width: this.canvas.width,
+                            height: this.canvas.height,
+                            clientWidth: this.canvas.clientWidth,
+                            clientHeight: this.canvas.clientHeight,
+                            computedWidth: computed.width,
+                            computedHeight: computed.height,
+                            offsetWidth: this.canvas.offsetWidth,
+                            offsetHeight: this.canvas.offsetHeight
+                        },
+                        image: {
+                            width: this.backgroundImage.width,
+                            height: this.backgroundImage.height
+                        },
+                        drawingLayer: {
+                            width: this.drawingLayer.width,
+                            height: this.drawingLayer.height
+                        }
+                    });
 
+                    // Assert dimensions match
+                    const dimensionsMatch = 
+                        this.canvas.width === img.width &&
+                        this.canvas.height === img.height &&
+                        this.drawingLayer.width === img.width &&
+                        this.drawingLayer.height === img.height;
+
+                    if (!dimensionsMatch) {
+                        console.error('Dimension mismatch detected!');
+                    }
+                };
+
+                // Draw at exact 1:1 scale
                 this.ctx.drawImage(
                     this.backgroundImage,
                     0, 0,
                     img.width,
                     img.height
                 );
+                
                 this.redrawCanvas();
                 this.loadExistingDrawing();
+                
+                // Verify after initial setup and after a short delay
+                verifyDimensions();
+                setTimeout(verifyDimensions, 1000);
             };
             img.onerror = (error) => {
                 console.error('Error loading image:', error);
@@ -204,28 +241,15 @@ class MapEditor {
     }
 
     redrawCanvas() {
-        // Clear main canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Draw background image
         if (this.backgroundImage) {
-            // Log dimensions during redraw
-            console.log('Redraw Dimensions:', {
-                canvas: {
-                    width: this.canvas.width,
-                    height: this.canvas.height
-                },
-                image: {
-                    width: this.backgroundImage.width,
-                    height: this.backgroundImage.height
-                }
-            });
-
+            // Draw at exact 1:1 scale
             this.ctx.drawImage(
                 this.backgroundImage,
                 0, 0,
-                this.canvas.width,
-                this.canvas.height
+                this.backgroundImage.width,
+                this.backgroundImage.height
             );
 
             this.ctx.drawImage(this.drawingLayer, 0, 0);
