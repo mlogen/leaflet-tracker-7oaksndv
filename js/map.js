@@ -81,30 +81,27 @@ class MapEditor {
             const img = new Image();
             img.onload = () => {
                 this.backgroundImage = img;
-                // Set canvas to image's natural dimensions
-                this.canvas.width = img.naturalWidth;
-                this.canvas.height = img.naturalHeight;
-                this.drawingLayer.width = img.naturalWidth;
-                this.drawingLayer.height = img.naturalHeight;
                 
-                // Setup cursor layer with same dimensions
-                this.cursorLayer.width = img.naturalWidth;
-                this.cursorLayer.height = img.naturalHeight;
+                // Set exact dimensions from original image
+                const originalWidth = img.naturalWidth;
+                const originalHeight = img.naturalHeight;
                 
-                // Position cursor layer
+                // Set canvas and layers to exact image dimensions
+                this.canvas.width = originalWidth;
+                this.canvas.height = originalHeight;
+                this.drawingLayer.width = originalWidth;
+                this.drawingLayer.height = originalHeight;
+                this.cursorLayer.width = originalWidth;
+                this.cursorLayer.height = originalHeight;
+                
+                // Position cursor layer exactly over canvas
                 const rect = this.canvas.getBoundingClientRect();
                 this.cursorLayer.style.left = rect.left + 'px';
                 this.cursorLayer.style.top = rect.top + 'px';
                 this.canvas.parentNode.appendChild(this.cursorLayer);
 
-                // Draw initial background at original size
-                this.ctx.drawImage(
-                    this.backgroundImage,
-                    0, 0,
-                    img.naturalWidth,
-                    img.naturalHeight
-                );
-                
+                // Draw background at exact size
+                this.ctx.drawImage(this.backgroundImage, 0, 0);
                 this.redrawCanvas();
             };
             img.onerror = (error) => {
@@ -230,9 +227,12 @@ class MapEditor {
 
     getMousePos(e) {
         const rect = this.canvas.getBoundingClientRect();
+        // Calculate the scale between displayed size and actual size
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
         return {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
         };
     }
 

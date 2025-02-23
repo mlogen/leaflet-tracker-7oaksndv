@@ -126,7 +126,6 @@ main {
     flex-direction: column;
     gap: 1rem;
     overflow: auto;
-    max-height: calc(100vh - 250px);
     padding: 1rem;
 }
 
@@ -234,20 +233,18 @@ main {
 }
 
 #mapCanvas {
-    /* Prevent canvas from being resized */
-    max-width: none;
-    max-height: none;
-    width: auto;
-    height: auto;
+    /* Force canvas to maintain exact dimensions */
+    width: initial !important;
+    height: initial !important;
+    min-width: initial !important;
+    min-height: initial !important;
+    max-width: initial !important;
+    max-height: initial !important;
     border: 2px solid var(--primary-color);
     background-color: #f0f0f0;
     cursor: default;
     border-radius: 4px;
     transition: border-color 0.3s ease;
-    image-rendering: -moz-crisp-edges;
-    image-rendering: -webkit-crisp-edges;
-    image-rendering: pixelated;
-    image-rendering: crisp-edges;
 }
 
 #mapCanvas:hover {
