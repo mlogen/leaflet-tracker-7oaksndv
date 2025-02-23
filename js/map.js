@@ -10,6 +10,10 @@ class MapEditor {
         this.eraserSize = 10;  // Fixed eraser size
         this.lastDrawPoint = null;
         
+        // Create a separate layer for drawings
+        this.drawingLayer = document.createElement('canvas');
+        this.drawingCtx = this.drawingLayer.getContext('2d');
+
         // Handle window resize
         window.addEventListener('resize', this.handleResize.bind(this));
 
@@ -62,33 +66,12 @@ class MapEditor {
         this.setupEventListeners();
     }
 
-    handleResize() {
-        if (this.backgroundImage) {
-            // Store current canvas state
-            const currentState = this.canvas.toDataURL();
-            
-            // Resize canvas
-            this.canvas.width = this.canvas.offsetWidth;
-            const scale = this.canvas.width / this.backgroundImage.width;
-            const scaledHeight = this.backgroundImage.height * scale;
-            this.canvas.height = scaledHeight;
-            
-            // Restore canvas state
-            const img = new Image();
-            img.onload = () => {
-                this.ctx.drawImage(img, 0, 0, this.canvas.width, scaledHeight);
-            };
-            img.src = currentState;
-        }
-    }
-
     setupCanvas() {
-        // Set initial canvas width
-        this.canvas.width = this.canvas.offsetWidth;
-        
         // Set default styles
         this.ctx.lineJoin = 'round';
         this.ctx.lineCap = 'round';
+        this.drawingCtx.lineJoin = 'round';
+        this.drawingCtx.lineCap = 'round';
         
         // Load background map image if specified
         const mapImagePath = this.canvas.dataset.mapImage;
@@ -96,11 +79,12 @@ class MapEditor {
             const img = new Image();
             img.onload = () => {
                 this.backgroundImage = img;
-                // Set initial height based on aspect ratio
-                const scale = this.canvas.width / img.width;
-                const scaledHeight = img.height * scale;
-                this.canvas.height = scaledHeight;
-                this.ctx.drawImage(img, 0, 0, this.canvas.width, scaledHeight);
+                // Use original image dimensions
+                this.canvas.width = img.width;
+                this.canvas.height = img.height;
+                this.drawingLayer.width = img.width;
+                this.drawingLayer.height = img.height;
+                this.redrawCanvas();
             };
             img.src = mapImagePath;
         }
@@ -126,19 +110,16 @@ class MapEditor {
 
         // Draw background image
         if (this.backgroundImage) {
-            // Calculate dimensions that maintain aspect ratio
-            const scale = this.canvas.width / this.backgroundImage.width;
-            const scaledHeight = this.backgroundImage.height * scale;
-            
-            // Update canvas height to match scaled image
-            this.canvas.height = scaledHeight;
-            
+            // Draw background image at original size
             this.ctx.drawImage(
                 this.backgroundImage,
                 0, 0,
-                this.canvas.width,
-                scaledHeight
+                this.backgroundImage.width,
+                this.backgroundImage.height
             );
+
+            // Draw the drawing layer at same size
+            this.ctx.drawImage(this.drawingLayer, 0, 0);
         }
     }
 
@@ -174,16 +155,16 @@ class MapEditor {
         
         // Configure drawing context based on tool
         if (this.tool === 'eraser') {
-            this.ctx.globalCompositeOperation = 'destination-out';
-            this.ctx.lineWidth = this.eraserSize;
+            this.drawingCtx.globalCompositeOperation = 'destination-out';
+            this.drawingCtx.lineWidth = this.eraserSize;
         } else {
-            this.ctx.globalCompositeOperation = 'source-over';
-            this.ctx.strokeStyle = this.color;
-            this.ctx.lineWidth = this.brushSize;
+            this.drawingCtx.globalCompositeOperation = 'source-over';
+            this.drawingCtx.strokeStyle = this.color;
+            this.drawingCtx.lineWidth = this.brushSize;
         }
         
-        this.ctx.beginPath();
-        this.ctx.moveTo(pos.x, pos.y);
+        this.drawingCtx.beginPath();
+        this.drawingCtx.moveTo(pos.x, pos.y);
         this.lastDrawPoint = pos;
     }
 
@@ -193,10 +174,11 @@ class MapEditor {
         const pos = this.getMousePos(e);
         
         if (this.lastDrawPoint) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(this.lastDrawPoint.x, this.lastDrawPoint.y);
-            this.ctx.lineTo(pos.x, pos.y);
-            this.ctx.stroke();
+            this.drawingCtx.beginPath();
+            this.drawingCtx.moveTo(this.lastDrawPoint.x, this.lastDrawPoint.y);
+            this.drawingCtx.lineTo(pos.x, pos.y);
+            this.drawingCtx.stroke();
+            this.redrawCanvas();
         }
         this.lastDrawPoint = pos;
     }
@@ -204,7 +186,7 @@ class MapEditor {
     stopDrawing() {
         if (this.isDrawing) {
             this.isDrawing = false;
-            this.ctx.globalCompositeOperation = 'source-over';
+            this.drawingCtx.globalCompositeOperation = 'source-over';
             this.saveMapState();
         }
     }
@@ -249,8 +231,9 @@ class MapEditor {
         if (data.mapData) {
             const img = new Image();
             img.onload = () => {
-                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-                this.ctx.drawImage(img, 0, 0);
+                this.drawingCtx.clearRect(0, 0, this.drawingLayer.width, this.drawingLayer.height);
+                this.drawingCtx.drawImage(img, 0, 0);
+                this.redrawCanvas();
             };
             img.src = data.mapData;
         }
