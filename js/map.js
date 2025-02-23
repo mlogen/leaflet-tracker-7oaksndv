@@ -82,10 +82,12 @@ class MapEditor {
                 this.drawingLayer.height = img.height;
                 
                 // Setup cursor layer
-                this.cursorLayer.width = img.width;
-                this.cursorLayer.height = img.height;
-                this.cursorLayer.style.left = this.canvas.offsetLeft + 'px';
-                this.cursorLayer.style.top = this.canvas.offsetTop + 'px';
+                this.cursorLayer.width = this.canvas.width;
+                this.cursorLayer.height = this.canvas.height;
+                // Position cursor layer exactly over canvas
+                const rect = this.canvas.getBoundingClientRect();
+                this.cursorLayer.style.left = rect.left + 'px';
+                this.cursorLayer.style.top = rect.top + 'px';
                 this.canvas.parentNode.appendChild(this.cursorLayer);
 
                 // Draw initial background
@@ -273,6 +275,10 @@ class MapEditor {
         // Clear previous cursor
         this.cursorCtx.clearRect(0, 0, this.cursorLayer.width, this.cursorLayer.height);
         
+        // Save current line width and style
+        const currentLineWidth = this.cursorCtx.lineWidth;
+        this.cursorCtx.lineWidth = 1;
+        
         // Draw new cursor
         this.cursorCtx.beginPath();
         this.cursorCtx.arc(pos.x, pos.y, 
@@ -289,6 +295,9 @@ class MapEditor {
         
         this.cursorCtx.stroke();
         this.cursorCtx.fill();
+        
+        // Restore line width
+        this.cursorCtx.lineWidth = currentLineWidth;
     }
 
     cleanup() {
@@ -302,4 +311,13 @@ class MapEditor {
 // Initialize the map editor when the page loads
 window.addEventListener('load', () => {
     new MapEditor();
+});
+
+// Add window resize handler to keep cursor layer aligned
+window.addEventListener('resize', () => {
+    if (this.canvas && this.cursorLayer) {
+        const rect = this.canvas.getBoundingClientRect();
+        this.cursorLayer.style.left = rect.left + 'px';
+        this.cursorLayer.style.top = rect.top + 'px';
+    }
 }); 
