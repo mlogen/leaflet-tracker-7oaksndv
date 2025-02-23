@@ -14,6 +14,7 @@ class MapEditor {
         this.cursorLayer = document.createElement('canvas');
         this.cursorLayer.style.position = 'absolute';
         this.cursorLayer.style.pointerEvents = 'none';
+        this.cursorLayer.style.zIndex = '1000'; // Ensure cursor is on top
         this.cursorCtx = this.cursorLayer.getContext('2d');
 
         // Create a separate layer for drawings
@@ -58,6 +59,10 @@ class MapEditor {
         // Performance optimizations
         this.requestAnimationId = null;
         this.needsRedraw = false;
+
+        // Bind the resize handler to this instance
+        this.handleResize = this.handleResize.bind(this);
+        window.addEventListener('resize', this.handleResize);
 
         this.setupCanvas();
         this.setupEventListeners();
@@ -271,6 +276,8 @@ class MapEditor {
 
     updateCursor(e) {
         const pos = this.getMousePos(e);
+        this.lastX = e.clientX; // Store last mouse position
+        this.lastY = e.clientY;
         
         // Clear previous cursor
         this.cursorCtx.clearRect(0, 0, this.cursorLayer.width, this.cursorLayer.height);
@@ -300,10 +307,21 @@ class MapEditor {
         this.cursorCtx.lineWidth = currentLineWidth;
     }
 
+    handleResize() {
+        if (this.canvas && this.cursorLayer) {
+            const rect = this.canvas.getBoundingClientRect();
+            this.cursorLayer.style.left = rect.left + 'px';
+            this.cursorLayer.style.top = rect.top + 'px';
+            this.cursorLayer.width = this.canvas.width;
+            this.cursorLayer.height = this.canvas.height;
+        }
+    }
+
     cleanup() {
         if (this.requestAnimationId) {
             cancelAnimationFrame(this.requestAnimationId);
         }
+        window.removeEventListener('resize', this.handleResize);
         this.cursorLayer.remove();
     }
 }
