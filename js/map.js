@@ -14,9 +14,6 @@ class MapEditor {
         this.drawingLayer = document.createElement('canvas');
         this.drawingCtx = this.drawingLayer.getContext('2d');
 
-        // Handle window resize
-        window.addEventListener('resize', this.handleResize.bind(this));
-
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
         this.db = firebase.database();
@@ -84,7 +81,20 @@ class MapEditor {
                 this.canvas.height = img.height;
                 this.drawingLayer.width = img.width;
                 this.drawingLayer.height = img.height;
+                
+                // Draw initial background
+                this.ctx.drawImage(
+                    this.backgroundImage,
+                    0, 0,
+                    this.backgroundImage.width,
+                    this.backgroundImage.height
+                );
+                
                 this.redrawCanvas();
+            };
+            img.onerror = (error) => {
+                console.error('Error loading image:', error);
+                console.log('Attempted image path:', mapImagePath);
             };
             img.src = mapImagePath;
         }
