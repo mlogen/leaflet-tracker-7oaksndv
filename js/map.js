@@ -6,17 +6,10 @@ class MapEditor {
         this.tool = 'brush';
         this.color = '#FF0000';
         this.backgroundImage = null;
-        this.brushSize = 10;  // Increased brush size by 100%
-        this.eraserSize = 30;  // Increased eraser size by 200%
+        this.brushSize = 10;
+        this.eraserSize = 30;
         this.lastDrawPoint = null;
         
-        // Create cursor feedback layer
-        this.cursorLayer = document.createElement('canvas');
-        this.cursorLayer.style.position = 'absolute';
-        this.cursorLayer.style.pointerEvents = 'none';
-        this.cursorLayer.style.zIndex = '1000'; // Ensure cursor is on top
-        this.cursorCtx = this.cursorLayer.getContext('2d');
-
         // Create a separate layer for drawings
         this.drawingLayer = document.createElement('canvas');
         this.drawingCtx = this.drawingLayer.getContext('2d');
@@ -60,10 +53,6 @@ class MapEditor {
         this.requestAnimationId = null;
         this.needsRedraw = false;
 
-        // Bind the resize handler to this instance
-        this.handleResize = this.handleResize.bind(this);
-        window.addEventListener('resize', this.handleResize);
-
         this.setupCanvas();
         this.setupEventListeners();
     }
@@ -83,30 +72,14 @@ class MapEditor {
                 this.backgroundImage = img;
                 
                 // Set exact dimensions from original image
-                const originalWidth = img.naturalWidth;
-                const originalHeight = img.naturalHeight;
+                this.canvas.width = img.naturalWidth;
+                this.canvas.height = img.naturalHeight;
+                this.drawingLayer.width = img.naturalWidth;
+                this.drawingLayer.height = img.naturalHeight;
                 
-                // Set canvas and layers to exact image dimensions
-                this.canvas.width = originalWidth;
-                this.canvas.height = originalHeight;
-                this.drawingLayer.width = originalWidth;
-                this.drawingLayer.height = originalHeight;
-                this.cursorLayer.width = originalWidth;
-                this.cursorLayer.height = originalHeight;
-                
-                // Position cursor layer exactly over canvas
-                const rect = this.canvas.getBoundingClientRect();
-                this.cursorLayer.style.left = rect.left + 'px';
-                this.cursorLayer.style.top = rect.top + 'px';
-                this.canvas.parentNode.appendChild(this.cursorLayer);
-
                 // Draw background at exact size
                 this.ctx.drawImage(this.backgroundImage, 0, 0);
                 this.redrawCanvas();
-            };
-            img.onerror = (error) => {
-                console.error('Error loading image:', error);
-                console.log('Attempted image path:', mapImagePath);
             };
             img.src = mapImagePath;
         }
@@ -148,18 +121,9 @@ class MapEditor {
     setupEventListeners() {
         // Drawing events
         this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        this.canvas.addEventListener('mousemove', (e) => {
-            this.draw(e);
-            this.updateCursor(e);
-        });
+        this.canvas.addEventListener('mousemove', this.draw.bind(this));
         this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
-        this.canvas.addEventListener('mouseout', (e) => {
-            this.handleMouseUp(e);
-            this.cursorCtx.clearRect(0, 0, this.cursorLayer.width, this.cursorLayer.height);
-        });
-        this.canvas.addEventListener('mouseenter', (e) => {
-            this.updateCursor(e);
-        });
+        this.canvas.addEventListener('mouseout', this.handleMouseUp.bind(this));
 
         // Tool selection
         document.getElementById('brush').addEventListener('click', () => this.setTool('brush'));
@@ -168,9 +132,6 @@ class MapEditor {
         // Color selection
         document.getElementById('colorPicker').addEventListener('input', (e) => {
             this.color = e.target.value;
-            if (this.tool === 'brush') {
-                this.updateCursor({ clientX: this.lastX, clientY: this.lastY });
-            }
         });
     }
 
@@ -274,68 +235,14 @@ class MapEditor {
         }
     }
 
-    updateCursor(e) {
-        const pos = this.getMousePos(e);
-        this.lastX = e.clientX; // Store last mouse position
-        this.lastY = e.clientY;
-        
-        // Clear previous cursor
-        this.cursorCtx.clearRect(0, 0, this.cursorLayer.width, this.cursorLayer.height);
-        
-        // Save current line width and style
-        const currentLineWidth = this.cursorCtx.lineWidth;
-        this.cursorCtx.lineWidth = 1;
-        
-        // Draw new cursor
-        this.cursorCtx.beginPath();
-        this.cursorCtx.arc(pos.x, pos.y, 
-            this.tool === 'eraser' ? this.eraserSize/2 : this.brushSize/2, 
-            0, Math.PI * 2);
-        
-        if (this.tool === 'eraser') {
-            this.cursorCtx.strokeStyle = '#000';
-            this.cursorCtx.fillStyle = 'rgba(255,255,255,0.3)';
-        } else {
-            this.cursorCtx.strokeStyle = this.color;
-            this.cursorCtx.fillStyle = `${this.color}33`;  // 20% opacity
-        }
-        
-        this.cursorCtx.stroke();
-        this.cursorCtx.fill();
-        
-        // Restore line width
-        this.cursorCtx.lineWidth = currentLineWidth;
-    }
-
-    handleResize() {
-        if (this.canvas && this.cursorLayer) {
-            const rect = this.canvas.getBoundingClientRect();
-            this.cursorLayer.style.left = rect.left + 'px';
-            this.cursorLayer.style.top = rect.top + 'px';
-            this.cursorLayer.width = this.canvas.width;
-            this.cursorLayer.height = this.canvas.height;
-        }
-    }
-
     cleanup() {
         if (this.requestAnimationId) {
             cancelAnimationFrame(this.requestAnimationId);
         }
-        window.removeEventListener('resize', this.handleResize);
-        this.cursorLayer.remove();
     }
 }
 
 // Initialize the map editor when the page loads
 window.addEventListener('load', () => {
     new MapEditor();
-});
-
-// Add window resize handler to keep cursor layer aligned
-window.addEventListener('resize', () => {
-    if (this.canvas && this.cursorLayer) {
-        const rect = this.canvas.getBoundingClientRect();
-        this.cursorLayer.style.left = rect.left + 'px';
-        this.cursorLayer.style.top = rect.top + 'px';
-    }
 }); 

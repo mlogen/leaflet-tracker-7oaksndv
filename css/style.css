@@ -127,6 +127,8 @@ main {
     gap: 1rem;
     overflow: auto;
     padding: 1rem;
+    max-height: calc(100vh - 200px);
+    min-height: 400px;
 }
 
 .map-tools {
@@ -233,13 +235,9 @@ main {
 }
 
 #mapCanvas {
-    /* Force canvas to maintain exact dimensions */
-    width: initial !important;
-    height: initial !important;
-    min-width: initial !important;
-    min-height: initial !important;
-    max-width: initial !important;
-    max-height: initial !important;
+    transform: none !important;
+    object-fit: none !important;
+    flex-shrink: 0;
     border: 2px solid var(--primary-color);
     background-color: #f0f0f0;
     cursor: default;
