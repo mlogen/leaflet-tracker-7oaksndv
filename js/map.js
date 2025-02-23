@@ -36,15 +36,23 @@ class MapEditor {
     }
 
     setupFirebase() {
-        // Get the page name from the path
-        const pageName = window.location.pathname.includes('hextable') ? 'hextable' : 'swanley';
-        
-        // Create separate reference for each map
-        this.mapRef = firebase.database().ref('maps/' + pageName);
+        // Create completely separate database paths for each map
+        if (window.location.pathname.includes('hextable')) {
+            this.mapRef = firebase.database().ref('hextable-map');
+            console.log('Connected to Hextable database path:', this.mapRef.toString());
+        } else {
+            this.mapRef = firebase.database().ref('swanley-map');
+            console.log('Connected to Swanley database path:', this.mapRef.toString());
+        }
 
         // Listen for real-time updates
         this.mapRef.on('value', (snapshot) => {
             const data = snapshot.val();
+            console.log('Database update received:', {
+                path: this.mapRef.toString(),
+                hasData: !!data,
+                timestamp: data?.timestamp
+            });
             if (data && (!this.lastSync || data.timestamp > this.lastSync)) {
                 this.loadFromFirebase(data);
                 this.lastSync = data.timestamp;
