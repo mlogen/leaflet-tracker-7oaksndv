@@ -58,9 +58,12 @@ class MapEditor {
     }
 
     setupCanvas() {
-        // Set initial canvas width
-        this.canvas.width = this.canvas.offsetWidth;
-        this.drawingLayer.width = this.canvas.width;
+        // Get container width without padding
+        const containerWidth = this.canvas.parentElement.clientWidth - 40;
+        
+        // Set initial dimensions
+        this.canvas.width = containerWidth;
+        this.drawingLayer.width = containerWidth;
         
         // Set default styles
         this.ctx.lineJoin = 'round';
@@ -74,11 +77,22 @@ class MapEditor {
             const img = new Image();
             img.onload = () => {
                 this.backgroundImage = img;
-                // Set initial height based on aspect ratio
-                const scale = this.canvas.width / img.width;
+                
+                // Calculate scale to maintain aspect ratio
+                const scale = containerWidth / img.width;
                 const scaledHeight = img.height * scale;
+                
+                // Set dimensions
                 this.canvas.height = scaledHeight;
                 this.drawingLayer.height = scaledHeight;
+                
+                // Initial draw
+                this.ctx.drawImage(
+                    this.backgroundImage,
+                    0, 0,
+                    containerWidth,
+                    scaledHeight
+                );
                 this.redrawCanvas();
             };
             img.src = mapImagePath;
@@ -146,14 +160,30 @@ class MapEditor {
             this.handleMouseUp(e);
         });
 
-        // Completely disable double-click
+        // Prevent all double-click behavior
+        this.canvas.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }, { passive: false, capture: true });
+        
+        // Prevent double-click selection
         this.canvas.style.userSelect = 'none';
         this.canvas.style.webkitUserSelect = 'none';
-        this.canvas.addEventListener('selectstart', (e) => e.preventDefault());
-        this.canvas.addEventListener('dblclick', (e) => e.preventDefault(), { passive: false });
+        this.canvas.style.webkitTouchCallout = 'none';
+        
+        // Prevent double-click from triggering mousedown
+        let lastClickTime = 0;
         this.canvas.addEventListener('mousedown', (e) => {
-            if (e.detail > 1) e.preventDefault();
-        }, { passive: false });
+            const currentTime = new Date().getTime();
+            const timeDiff = currentTime - lastClickTime;
+            if (timeDiff < 300) { // Double click threshold
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+            lastClickTime = currentTime;
+        }, { passive: false, capture: true });
 
         // Tool selection
         document.getElementById('brush').addEventListener('click', () => this.setTool('brush'));
@@ -182,12 +212,13 @@ class MapEditor {
         this.isDrawing = true;
         const pos = this.getMousePos(e);
         
+        // Reset composite operation before starting new stroke
+        this.drawingCtx.globalCompositeOperation = this.tool === 'eraser' ? 'destination-out' : 'source-over';
+        
         // Configure drawing context based on tool
         if (this.tool === 'eraser') {
-            this.drawingCtx.globalCompositeOperation = 'destination-out';
             this.drawingCtx.lineWidth = this.eraserSize;
         } else {
-            this.drawingCtx.globalCompositeOperation = 'source-over';
             this.drawingCtx.strokeStyle = this.color;
             this.drawingCtx.lineWidth = this.brushSize;
         }
@@ -280,30 +311,30 @@ class MapEditor {
 
     handleResize() {
         if (this.backgroundImage) {
-            // Get the container width
-            const containerWidth = this.canvas.parentElement.clientWidth - 40; // Account for padding
+            // Get container width without padding
+            const containerWidth = this.canvas.parentElement.clientWidth - 40;
             
             // Calculate scale while maintaining aspect ratio
             const scale = containerWidth / this.backgroundImage.width;
+            const scaledHeight = this.backgroundImage.height * scale;
             
             // Store current drawing
             const drawingData = this.drawingLayer.toDataURL();
             
-            // Update canvas and layer dimensions
+            // Update dimensions
             this.canvas.width = containerWidth;
-            this.canvas.height = this.backgroundImage.height * scale;
+            this.canvas.height = scaledHeight;
             this.drawingLayer.width = containerWidth;
-            this.drawingLayer.height = this.backgroundImage.height * scale;
+            this.drawingLayer.height = scaledHeight;
             
-            // Redraw background
+            // Redraw everything
             this.ctx.drawImage(
                 this.backgroundImage,
                 0, 0,
                 containerWidth,
-                this.backgroundImage.height * scale
+                scaledHeight
             );
             
-            // Restore drawing
             const img = new Image();
             img.onload = () => {
                 this.drawingCtx.drawImage(img, 0, 0);

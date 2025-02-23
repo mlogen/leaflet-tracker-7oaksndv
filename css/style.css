@@ -125,11 +125,11 @@ main {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    overflow: auto;
+    overflow: hidden;
     padding: 1rem;
-    -webkit-overflow-scrolling: touch;
-    width: 100%;
+    width: calc(100% - 2rem);
     box-sizing: border-box;
+    -webkit-overflow-scrolling: touch;
 }
 
 .map-tools {
@@ -236,10 +236,8 @@ main {
 }
 
 #mapCanvas {
-    width: 100%;
-    height: auto;
-    max-width: 100%;
-    display: block;
+    width: 100% !important;
+    height: auto !important;
     border: 2px solid var(--primary-color);
     background-color: #f0f0f0;
     cursor: default;
@@ -247,6 +245,8 @@ main {
     transition: border-color 0.3s ease;
     touch-action: none;
     -webkit-tap-highlight-color: transparent;
+    transform: translateZ(0);
+    -webkit-transform: translateZ(0);
 }
 
 #mapCanvas:hover {
@@ -269,15 +269,17 @@ footer {
 /* iOS-specific fixes */
 @supports (-webkit-touch-callout: none) {
     .map-container {
-        width: 100%;
-        height: auto;
-        overflow: visible;
+        overflow: hidden;
+        -webkit-overflow-scrolling: touch;
+        width: calc(100% - 2rem);
     }
     
     #mapCanvas {
         width: 100% !important;
         height: auto !important;
-        transform: translateZ(0);
-        -webkit-transform: translateZ(0);
+        max-width: none !important;
+        max-height: none !important;
+        transform: none !important;
+        -webkit-transform: none !important;
     }
 } 
