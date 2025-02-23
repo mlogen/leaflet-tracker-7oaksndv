@@ -15,6 +15,11 @@ class MapEditor {
         this.brushSize = 10;
         this.eraserSize = 30;
         this.lastDrawPoint = null;
+        this.lastClickTime = 0;
+        this.clickDelay = 500; // Increased delay between clicks to 500ms
+        this.eraserClicks = 0;  // Track eraser clicks
+        this.eraserClickReset = null;  // Timer for resetting eraser clicks
+        this.maxEraserClicks = 3;  // Max allowed rapid clicks
         
         // Create drawing layer
         this.drawingLayer = document.createElement('canvas');
@@ -52,18 +57,16 @@ class MapEditor {
     }
 
     setupCanvas() {
-        // Set fixed dimensions
-        this.canvas.width = 1200;
-        this.canvas.height = 800;
-        this.drawingLayer.width = 1200;
-        this.drawingLayer.height = 800;
-        
         const mapImagePath = this.canvas.dataset.mapImage;
         if (mapImagePath) {
             const img = new Image();
             img.crossOrigin = 'anonymous';
             img.onload = () => {
                 this.backgroundImage = img;
+                this.canvas.width = img.width;
+                this.canvas.height = img.height;
+                this.drawingLayer.width = img.width;
+                this.drawingLayer.height = img.height;
                 this.redrawCanvas();
                 this.loadExistingDrawing();
             };
@@ -101,6 +104,34 @@ class MapEditor {
     }
 
     startDrawing(e) {
+        // Additional eraser safeguards
+        if (this.tool === 'eraser') {
+            this.eraserClicks++;
+            
+            // Clear existing timer
+            if (this.eraserClickReset) {
+                clearTimeout(this.eraserClickReset);
+            }
+            
+            // Reset click count after delay
+            this.eraserClickReset = setTimeout(() => {
+                this.eraserClicks = 0;
+            }, 2000);
+            
+            // Prevent action if too many clicks
+            if (this.eraserClicks > this.maxEraserClicks) {
+                console.log('Too many eraser clicks - waiting for reset');
+                return;
+            }
+        }
+
+        // Prevent rapid clicking
+        const currentTime = Date.now();
+        if (currentTime - this.lastClickTime < this.clickDelay) {
+            return;
+        }
+        this.lastClickTime = currentTime;
+
         this.isDrawing = true;
         const pos = this.getPointerPos(e);
         this.lastDrawPoint = pos;
@@ -109,10 +140,15 @@ class MapEditor {
         if (this.tool === 'eraser') {
             this.drawingCtx.globalCompositeOperation = 'destination-out';
             this.drawingCtx.lineWidth = this.eraserSize;
+            this.drawingCtx.lineCap = 'round';
+            this.drawingCtx.lineJoin = 'round';
         } else {
+            this.eraserClicks = 0;  // Reset eraser clicks when switching to brush
             this.drawingCtx.globalCompositeOperation = 'source-over';
             this.drawingCtx.lineWidth = this.brushSize;
             this.drawingCtx.strokeStyle = this.color;
+            this.drawingCtx.lineCap = 'round';
+            this.drawingCtx.lineJoin = 'round';
         }
         
         this.drawingCtx.beginPath();
@@ -136,8 +172,12 @@ class MapEditor {
     stopDrawing() {
         if (this.isDrawing) {
             this.isDrawing = false;
-            this.drawingCtx.globalCompositeOperation = 'source-over';
-            this.saveMapState();
+            // Only save if we actually drew something
+            if (this.lastDrawPoint) {
+                this.drawingCtx.globalCompositeOperation = 'source-over';
+                this.saveMapState();
+            }
+            this.lastDrawPoint = null;
         }
     }
 
@@ -170,6 +210,11 @@ class MapEditor {
 
     setTool(tool) {
         this.tool = tool;
+        // Reset eraser state when switching tools
+        this.eraserClicks = 0;
+        if (this.eraserClickReset) {
+            clearTimeout(this.eraserClickReset);
+        }
         document.querySelectorAll('.tool').forEach(btn => btn.classList.remove('active'));
         document.getElementById(tool).classList.add('active');
         this.canvas.style.cursor = 'default';

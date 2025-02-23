@@ -127,10 +127,11 @@ main {
     gap: 1rem;
     overflow: scroll;
     padding: 1rem;
-    width: 1250px;
-    height: 900px;
+    width: fit-content;
+    height: fit-content;
+    max-height: 90vh;
     box-sizing: border-box;
-    margin: 0 auto;  /* Center the container */
+    margin: 0 auto;
 }
 
 .map-tools {
@@ -237,9 +238,10 @@ main {
 }
 
 #mapCanvas {
-    width: 1200px;  /* Fixed width accounting for padding */
-    height: 800px;  /* Fixed height leaving room for tools */
+    width: auto;
+    height: auto;
     border: 2px solid var(--primary-color);
+    padding: 10px;
     background-color: #f0f0f0;
     cursor: default;
     border-radius: 4px;
