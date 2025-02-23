@@ -10,13 +10,6 @@ class MapEditor {
         this.eraserSize = 10;  // Fixed eraser size
         this.lastDrawPoint = null;
         
-        // Create drawing layer
-        this.drawingLayer = document.createElement('canvas');
-        this.drawingCtx = this.drawingLayer.getContext('2d', {
-            alpha: true,
-            willReadFrequently: true
-        });
-
         // Handle window resize
         window.addEventListener('resize', this.handleResize.bind(this));
 
@@ -71,39 +64,31 @@ class MapEditor {
 
     handleResize() {
         if (this.backgroundImage) {
-            // Store current drawing
-            const drawingData = this.drawingLayer.toDataURL();
+            // Store current canvas state
+            const currentState = this.canvas.toDataURL();
             
-            // Resize canvases
+            // Resize canvas
             this.canvas.width = this.canvas.offsetWidth;
             const scale = this.canvas.width / this.backgroundImage.width;
             const scaledHeight = this.backgroundImage.height * scale;
             this.canvas.height = scaledHeight;
             
-            // Resize drawing layer
-            this.drawingLayer.width = this.canvas.width;
-            this.drawingLayer.height = scaledHeight;
-            
-            // Restore drawing
+            // Restore canvas state
             const img = new Image();
             img.onload = () => {
-                this.drawingCtx.drawImage(img, 0, 0, this.canvas.width, scaledHeight);
-                this.redrawCanvas();
+                this.ctx.drawImage(img, 0, 0, this.canvas.width, scaledHeight);
             };
-            img.src = drawingData;
+            img.src = currentState;
         }
     }
 
     setupCanvas() {
         // Set initial canvas width
         this.canvas.width = this.canvas.offsetWidth;
-        this.drawingLayer.width = this.canvas.width;
         
         // Set default styles
         this.ctx.lineJoin = 'round';
         this.ctx.lineCap = 'round';
-        this.drawingCtx.lineJoin = 'round';
-        this.drawingCtx.lineCap = 'round';
         
         // Load background map image if specified
         const mapImagePath = this.canvas.dataset.mapImage;
@@ -115,8 +100,7 @@ class MapEditor {
                 const scale = this.canvas.width / img.width;
                 const scaledHeight = img.height * scale;
                 this.canvas.height = scaledHeight;
-                this.drawingLayer.height = scaledHeight;
-                this.redrawCanvas();
+                this.ctx.drawImage(img, 0, 0, this.canvas.width, scaledHeight);
             };
             img.src = mapImagePath;
         }
@@ -148,18 +132,9 @@ class MapEditor {
             
             // Update canvas height to match scaled image
             this.canvas.height = scaledHeight;
-            this.drawingLayer.height = scaledHeight;
             
             this.ctx.drawImage(
                 this.backgroundImage,
-                0, 0,
-                this.canvas.width,
-                scaledHeight
-            );
-
-            // Draw the drawing layer at same scale
-            this.ctx.drawImage(
-                this.drawingLayer,
                 0, 0,
                 this.canvas.width,
                 scaledHeight
@@ -199,33 +174,29 @@ class MapEditor {
         
         // Configure drawing context based on tool
         if (this.tool === 'eraser') {
-            this.drawingCtx.globalCompositeOperation = 'destination-out';
-            this.drawingCtx.lineWidth = this.eraserSize;
+            this.ctx.globalCompositeOperation = 'destination-out';
+            this.ctx.lineWidth = this.eraserSize;
         } else {
-            this.drawingCtx.globalCompositeOperation = 'source-over';
-            this.drawingCtx.strokeStyle = this.color;
-            this.drawingCtx.lineWidth = this.brushSize;
+            this.ctx.globalCompositeOperation = 'source-over';
+            this.ctx.strokeStyle = this.color;
+            this.ctx.lineWidth = this.brushSize;
         }
         
-        this.drawingCtx.beginPath();
-        this.drawingCtx.moveTo(pos.x, pos.y);
+        this.ctx.beginPath();
+        this.ctx.moveTo(pos.x, pos.y);
         this.lastDrawPoint = pos;
-        this.redrawCanvas();
     }
 
     draw(e) {
-        if (!this.isDrawing) {
-            return;
-        }
+        if (!this.isDrawing) return;
         
         const pos = this.getMousePos(e);
         
         if (this.lastDrawPoint) {
-            this.drawingCtx.beginPath();
-            this.drawingCtx.moveTo(this.lastDrawPoint.x, this.lastDrawPoint.y);
-            this.drawingCtx.lineTo(pos.x, pos.y);
-            this.drawingCtx.stroke();
-            this.redrawCanvas();
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.lastDrawPoint.x, this.lastDrawPoint.y);
+            this.ctx.lineTo(pos.x, pos.y);
+            this.ctx.stroke();
         }
         this.lastDrawPoint = pos;
     }
@@ -233,7 +204,7 @@ class MapEditor {
     stopDrawing() {
         if (this.isDrawing) {
             this.isDrawing = false;
-            this.drawingCtx.globalCompositeOperation = 'source-over';
+            this.ctx.globalCompositeOperation = 'source-over';
             this.saveMapState();
         }
     }
@@ -258,7 +229,7 @@ class MapEditor {
     async saveToFirebase() {
         try {
             await this.mapRef.set({
-                mapData: this.drawingLayer.toDataURL(),
+                mapData: this.canvas.toDataURL(),
                 timestamp: firebase.database.ServerValue.TIMESTAMP
             });
         } catch (error) {
@@ -278,9 +249,8 @@ class MapEditor {
         if (data.mapData) {
             const img = new Image();
             img.onload = () => {
-                this.drawingCtx.clearRect(0, 0, this.drawingLayer.width, this.drawingLayer.height);
-                this.drawingCtx.drawImage(img, 0, 0);
-                this.redrawCanvas();
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                this.ctx.drawImage(img, 0, 0);
             };
             img.src = data.mapData;
         }
