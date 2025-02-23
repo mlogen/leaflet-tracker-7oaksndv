@@ -9,6 +9,7 @@ class MapEditor {
         this.brushSize = 10;
         this.eraserSize = 30;
         this.lastDrawPoint = null;
+        this.lastClick = 0;  // For double-click prevention
         
         // Create a separate layer for drawings
         this.drawingLayer = document.createElement('canvas');
@@ -136,54 +137,43 @@ class MapEditor {
     }
 
     setupEventListeners() {
-        // Drawing events
-        this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        this.canvas.addEventListener('mousemove', this.draw.bind(this));
-        this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
-        this.canvas.addEventListener('mouseout', this.handleMouseUp.bind(this));
-
-        // Touch events for mobile
-        this.canvas.addEventListener('touchstart', (e) => {
-            e.preventDefault(); // Prevent scrolling while drawing
-            const touch = e.touches[0];
-            this.handleMouseDown(touch);
-        });
-        
-        this.canvas.addEventListener('touchmove', (e) => {
+        // Unified pointer events for both mouse and touch
+        this.canvas.addEventListener('pointerdown', (e) => {
             e.preventDefault();
-            const touch = e.touches[0];
-            this.draw(touch);
-        });
-        
-        this.canvas.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            this.handleMouseUp(e);
+            // Prevent double-click from starting a draw
+            const now = Date.now();
+            if (now - this.lastClick < 300) { // 300ms threshold
+                return;
+            }
+            this.lastClick = now;
+            this.handleStart(e);
         });
 
-        // Prevent all double-click behavior
+        this.canvas.addEventListener('pointermove', (e) => {
+            e.preventDefault();
+            this.handleMove(e);
+        });
+
+        this.canvas.addEventListener('pointerup', (e) => {
+            e.preventDefault();
+            this.handleEnd(e);
+        });
+
+        this.canvas.addEventListener('pointerout', (e) => {
+            e.preventDefault();
+            this.handleEnd(e);
+        });
+
+        // Prevent all double-click default behaviors
         this.canvas.addEventListener('dblclick', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            return false;
-        }, { passive: false, capture: true });
+        }, { capture: true });
         
         // Prevent double-click selection
         this.canvas.style.userSelect = 'none';
         this.canvas.style.webkitUserSelect = 'none';
         this.canvas.style.webkitTouchCallout = 'none';
-        
-        // Prevent double-click from triggering mousedown
-        let lastClickTime = 0;
-        this.canvas.addEventListener('mousedown', (e) => {
-            const currentTime = new Date().getTime();
-            const timeDiff = currentTime - lastClickTime;
-            if (timeDiff < 300) { // Double click threshold
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-            }
-            lastClickTime = currentTime;
-        }, { passive: false, capture: true });
 
         // Tool selection
         document.getElementById('brush').addEventListener('click', () => this.setTool('brush'));
@@ -199,40 +189,24 @@ class MapEditor {
         window.addEventListener('orientationchange', this.handleResize.bind(this));
     }
 
-    handleMouseDown(e) {
-        const pos = this.getMousePos(e);
-        this.startDrawing(e);
-    }
-
-    handleMouseUp(e) {
-        this.stopDrawing();
-    }
-
-    startDrawing(e) {
+    handleStart(e) {
         this.isDrawing = true;
-        const pos = this.getMousePos(e);
+        const pos = this.getPointerPos(e);
+        this.lastDrawPoint = pos;
         
-        // Reset composite operation before starting new stroke
+        // Set drawing properties
         this.drawingCtx.globalCompositeOperation = this.tool === 'eraser' ? 'destination-out' : 'source-over';
-        
-        // Configure drawing context based on tool
-        if (this.tool === 'eraser') {
-            this.drawingCtx.lineWidth = this.eraserSize;
-        } else {
-            this.drawingCtx.strokeStyle = this.color;
-            this.drawingCtx.lineWidth = this.brushSize;
-        }
+        this.drawingCtx.lineWidth = this.tool === 'eraser' ? this.eraserSize : this.brushSize;
+        this.drawingCtx.strokeStyle = this.color;
         
         this.drawingCtx.beginPath();
         this.drawingCtx.moveTo(pos.x, pos.y);
-        this.lastDrawPoint = pos;
     }
 
-    draw(e) {
+    handleMove(e) {
         if (!this.isDrawing) return;
         
-        const pos = this.getMousePos(e);
-        
+        const pos = this.getPointerPos(e);
         if (this.lastDrawPoint) {
             this.drawingCtx.beginPath();
             this.drawingCtx.moveTo(this.lastDrawPoint.x, this.lastDrawPoint.y);
@@ -243,7 +217,7 @@ class MapEditor {
         this.lastDrawPoint = pos;
     }
 
-    stopDrawing() {
+    handleEnd(e) {
         if (this.isDrawing) {
             this.isDrawing = false;
             this.drawingCtx.globalCompositeOperation = 'source-over';
@@ -251,17 +225,13 @@ class MapEditor {
         }
     }
 
-    getMousePos(e) {
+    getPointerPos(e) {
         const rect = this.canvas.getBoundingClientRect();
-        // Calculate the scale between displayed size and actual size
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
-        // Handle both mouse and touch events
-        const clientX = e.clientX || e.pageX || (e.touches && e.touches[0] ? e.touches[0].clientX : 0);
-        const clientY = e.clientY || e.pageY || (e.touches && e.touches[0] ? e.touches[0].clientY : 0);
         return {
-            x: (clientX - rect.left) * scaleX,
-            y: (clientY - rect.top) * scaleY
+            x: (e.clientX - rect.left) * scaleX,
+            y: (e.clientY - rect.top) * scaleY
         };
     }
 
