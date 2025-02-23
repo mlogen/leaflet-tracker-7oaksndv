@@ -81,26 +81,28 @@ class MapEditor {
             const img = new Image();
             img.onload = () => {
                 this.backgroundImage = img;
-                this.canvas.width = img.width;
-                this.canvas.height = img.height;
-                this.drawingLayer.width = img.width;
-                this.drawingLayer.height = img.height;
+                // Set canvas to image's natural dimensions
+                this.canvas.width = img.naturalWidth;
+                this.canvas.height = img.naturalHeight;
+                this.drawingLayer.width = img.naturalWidth;
+                this.drawingLayer.height = img.naturalHeight;
                 
-                // Setup cursor layer
-                this.cursorLayer.width = this.canvas.width;
-                this.cursorLayer.height = this.canvas.height;
-                // Position cursor layer exactly over canvas
+                // Setup cursor layer with same dimensions
+                this.cursorLayer.width = img.naturalWidth;
+                this.cursorLayer.height = img.naturalHeight;
+                
+                // Position cursor layer
                 const rect = this.canvas.getBoundingClientRect();
                 this.cursorLayer.style.left = rect.left + 'px';
                 this.cursorLayer.style.top = rect.top + 'px';
                 this.canvas.parentNode.appendChild(this.cursorLayer);
 
-                // Draw initial background
+                // Draw initial background at original size
                 this.ctx.drawImage(
                     this.backgroundImage,
                     0, 0,
-                    this.backgroundImage.width,
-                    this.backgroundImage.height
+                    img.naturalWidth,
+                    img.naturalHeight
                 );
                 
                 this.redrawCanvas();
@@ -133,12 +135,12 @@ class MapEditor {
 
         // Draw background image
         if (this.backgroundImage) {
-            // Draw background image at original size
+            // Draw at original size
             this.ctx.drawImage(
                 this.backgroundImage,
                 0, 0,
-                this.backgroundImage.width,
-                this.backgroundImage.height
+                this.backgroundImage.naturalWidth,
+                this.backgroundImage.naturalHeight
             );
 
             // Draw the drawing layer at same size
@@ -228,11 +230,9 @@ class MapEditor {
 
     getMousePos(e) {
         const rect = this.canvas.getBoundingClientRect();
-        const scaleX = this.canvas.width / rect.width;
-        const scaleY = this.canvas.height / rect.height;
         return {
-            x: (e.clientX - rect.left) * scaleX,
-            y: (e.clientY - rect.top) * scaleY
+            x: e.clientX - rect.left,
+            y: e.clientY - rect.top
         };
     }
 

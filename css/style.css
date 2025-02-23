@@ -234,6 +234,11 @@ main {
 }
 
 #mapCanvas {
+    /* Prevent canvas from being resized */
+    max-width: none;
+    max-height: none;
+    width: auto;
+    height: auto;
     border: 2px solid var(--primary-color);
     background-color: #f0f0f0;
     cursor: default;
