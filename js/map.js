@@ -6,10 +6,16 @@ class MapEditor {
         this.tool = 'brush';
         this.color = '#FF0000';
         this.backgroundImage = null;
-        this.brushSize = 5;  // Fixed brush size
-        this.eraserSize = 10;  // Fixed eraser size
+        this.brushSize = 10;  // Increased brush size by 100%
+        this.eraserSize = 30;  // Increased eraser size by 200%
         this.lastDrawPoint = null;
         
+        // Create cursor feedback layer
+        this.cursorLayer = document.createElement('canvas');
+        this.cursorLayer.style.position = 'absolute';
+        this.cursorLayer.style.pointerEvents = 'none';
+        this.cursorCtx = this.cursorLayer.getContext('2d');
+
         // Create a separate layer for drawings
         this.drawingLayer = document.createElement('canvas');
         this.drawingCtx = this.drawingLayer.getContext('2d');
@@ -49,12 +55,6 @@ class MapEditor {
             }
         });
 
-        // Create cursor canvas for tool feedback
-        this.cursorCanvas = document.createElement('canvas');
-        this.cursorCanvas.style.position = 'absolute';
-        this.cursorCanvas.style.pointerEvents = 'none';
-        this.cursorCtx = this.cursorCanvas.getContext('2d');
-        
         // Performance optimizations
         this.requestAnimationId = null;
         this.needsRedraw = false;
@@ -76,12 +76,18 @@ class MapEditor {
             const img = new Image();
             img.onload = () => {
                 this.backgroundImage = img;
-                // Use original image dimensions
                 this.canvas.width = img.width;
                 this.canvas.height = img.height;
                 this.drawingLayer.width = img.width;
                 this.drawingLayer.height = img.height;
                 
+                // Setup cursor layer
+                this.cursorLayer.width = img.width;
+                this.cursorLayer.height = img.height;
+                this.cursorLayer.style.left = this.canvas.offsetLeft + 'px';
+                this.cursorLayer.style.top = this.canvas.offsetTop + 'px';
+                this.canvas.parentNode.appendChild(this.cursorLayer);
+
                 // Draw initial background
                 this.ctx.drawImage(
                     this.backgroundImage,
@@ -136,9 +142,18 @@ class MapEditor {
     setupEventListeners() {
         // Drawing events
         this.canvas.addEventListener('mousedown', this.handleMouseDown.bind(this));
-        this.canvas.addEventListener('mousemove', this.draw.bind(this));
+        this.canvas.addEventListener('mousemove', (e) => {
+            this.draw(e);
+            this.updateCursor(e);
+        });
         this.canvas.addEventListener('mouseup', this.handleMouseUp.bind(this));
-        this.canvas.addEventListener('mouseout', this.handleMouseUp.bind(this));
+        this.canvas.addEventListener('mouseout', (e) => {
+            this.handleMouseUp(e);
+            this.cursorCtx.clearRect(0, 0, this.cursorLayer.width, this.cursorLayer.height);
+        });
+        this.canvas.addEventListener('mouseenter', (e) => {
+            this.updateCursor(e);
+        });
 
         // Tool selection
         document.getElementById('brush').addEventListener('click', () => this.setTool('brush'));
@@ -147,6 +162,9 @@ class MapEditor {
         // Color selection
         document.getElementById('colorPicker').addEventListener('input', (e) => {
             this.color = e.target.value;
+            if (this.tool === 'brush') {
+                this.updateCursor({ clientX: this.lastX, clientY: this.lastY });
+            }
         });
     }
 
@@ -249,11 +267,35 @@ class MapEditor {
         }
     }
 
+    updateCursor(e) {
+        const pos = this.getMousePos(e);
+        
+        // Clear previous cursor
+        this.cursorCtx.clearRect(0, 0, this.cursorLayer.width, this.cursorLayer.height);
+        
+        // Draw new cursor
+        this.cursorCtx.beginPath();
+        this.cursorCtx.arc(pos.x, pos.y, 
+            this.tool === 'eraser' ? this.eraserSize/2 : this.brushSize/2, 
+            0, Math.PI * 2);
+        
+        if (this.tool === 'eraser') {
+            this.cursorCtx.strokeStyle = '#000';
+            this.cursorCtx.fillStyle = 'rgba(255,255,255,0.3)';
+        } else {
+            this.cursorCtx.strokeStyle = this.color;
+            this.cursorCtx.fillStyle = `${this.color}33`;  // 20% opacity
+        }
+        
+        this.cursorCtx.stroke();
+        this.cursorCtx.fill();
+    }
+
     cleanup() {
         if (this.requestAnimationId) {
             cancelAnimationFrame(this.requestAnimationId);
         }
-        this.cursorCanvas.remove();
+        this.cursorLayer.remove();
     }
 }
 
