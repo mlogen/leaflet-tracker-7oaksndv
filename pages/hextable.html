@@ -4,29 +4,29 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Canvassing Map Tracker</title>
-    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="../css/style.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <script src="js/config.js"></script>
+    <script src="../js/config.js"></script>
 </head>
 <body>
     <nav>
         <div class="nav-container">
             <div class="nav-links">
-                <a href="index.html" class="active">Swanley</a>
-                <a href="pages/hextable.html">Hextable</a>
+                <a href="../index.html">Swanley</a>
+                <a href="hextable.html" class="active">Hextable</a>
             </div>
         </div>
     </nav>
 
     <main>
         <div class="area-info">
-            <h1>Swanley</h1>
-            <p>Number of households: 7,201</p>
+            <h1>Hextable</h1>
+            <p>Number of households: TBD</p>
         </div>
 
         <div class="map-container">
@@ -35,7 +35,7 @@
                 <button id="eraser" class="tool">Eraser</button>
                 <input type="color" id="colorPicker" value="#FF0000">
             </div>
-            <canvas id="mapCanvas" data-map-image="assets/images/swanley.png"></canvas>
+            <canvas id="mapCanvas" data-map-image="../assets/images/swanley-hextable.png"></canvas>
         </div>
     </main>
 
@@ -43,25 +43,6 @@
         <div class="version">v1.63-desktop</div>
     </footer>
 
-    <script src="js/map.js"></script>
-    <script>
-        // Test Firebase connection
-        function testFirebase() {
-            const testRef = firebase.database().ref('test');
-            testRef.set({
-                timestamp: Date.now(),
-                test: 'Connection working'
-            })
-            .then(() => console.log('Firebase write successful'))
-            .catch(error => console.error('Firebase write failed:', error));
-
-            testRef.once('value')
-            .then(snapshot => console.log('Firebase read successful:', snapshot.val()))
-            .catch(error => console.error('Firebase read failed:', error));
-        }
-        
-        // Run test when page loads
-        window.addEventListener('load', testFirebase);
-    </script>
+    <script src="../js/map.js"></script>
 </body>
 </html> 

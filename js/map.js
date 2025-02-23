@@ -36,11 +36,7 @@ class MapEditor {
         const pathMap = {
             '/': 'swanley',
             '/index.html': 'swanley',
-            '/pages/sevenoaks-north.html': 'sevenoaks-north',
-            '/pages/sevenoaks-rural-ne.html': 'sevenoaks-rural-ne',
-            '/pages/sevenoaks-town.html': 'sevenoaks-town',
-            '/pages/sevenoaks-west.html': 'sevenoaks-west',
-            '/pages/sevenoaks-rural-s.html': 'sevenoaks-rural-s'
+            '/pages/hextable.html': 'hextable'
         };
         
         const pageId = pathMap[window.location.pathname] || 'default';
