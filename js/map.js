@@ -1,5 +1,11 @@
 class MapEditor {
     constructor() {
+        // Check if mobile and show message
+        if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+            document.body.innerHTML = '<div class="mobile-message">Mobile devices are not supported</div>';
+            return;
+        }
+
         this.canvas = document.getElementById('mapCanvas');
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
         this.isDrawing = false;
@@ -9,36 +15,32 @@ class MapEditor {
         this.brushSize = 10;
         this.eraserSize = 30;
         this.lastDrawPoint = null;
-        this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
-        // Create a separate .layer for drawings
+        // Create drawing layer
         this.drawingLayer = document.createElement('canvas');
         this.drawingCtx = this.drawingLayer.getContext('2d');
 
         // Initialize Firebase
         const app = firebase.initializeApp(firebaseConfig);
         this.db = firebase.database();
+        this.setupFirebase();
+        this.setupCanvas();
+        this.setupEventListeners();
+    }
 
+    setupFirebase() {
         // Create a unique identifier for each page
-        const getPageId = () => {
-            const path = window.location.pathname;
-            
-            // Map of paths to clean identifiers
-            const pathMap = {
-                '/': 'swanley',
-                '/index.html': 'swanley',
-                '/pages/sevenoaks-north.html': 'sevenoaks-north',
-                '/pages/sevenoaks-rural-ne.html': 'sevenoaks-rural-ne',
-                '/pages/sevenoaks-town.html': 'sevenoaks-town',
-                '/pages/sevenoaks-west.html': 'sevenoaks-west',
-                '/pages/sevenoaks-rural-s.html': 'sevenoaks-rural-s'
-            };
-            
-            // Return mapped id or a fallback
-            return pathMap[path] || 'default';
+        const pathMap = {
+            '/': 'swanley',
+            '/index.html': 'swanley',
+            '/pages/sevenoaks-north.html': 'sevenoaks-north',
+            '/pages/sevenoaks-rural-ne.html': 'sevenoaks-rural-ne',
+            '/pages/sevenoaks-town.html': 'sevenoaks-town',
+            '/pages/sevenoaks-west.html': 'sevenoaks-west',
+            '/pages/sevenoaks-rural-s.html': 'sevenoaks-rural-s'
         };
         
-        const pageId = getPageId();
+        const pageId = pathMap[window.location.pathname] || 'default';
         this.mapRef = this.db.ref('maps/' + pageId);
 
         // Listen for real-time updates
@@ -49,123 +51,74 @@ class MapEditor {
                 this.lastSync = data.timestamp;
             }
         });
-
-        // Performance optimizations
-        this.requestAnimationId = null;
-        this.needsRedraw = false;
-
-        this.setupCanvas();
-        this.setupEventListeners();
-        
-        // Hide editing tools and show message on mobile
-        if (this.isMobileDevice) {
-            const mapTools = document.querySelector('.map-tools');
-            if (mapTools) {
-                mapTools.innerHTML = '<div class="mobile-message">View only on mobile devices</div>';
-                mapTools.classList.add('mobile-view');
-            }
-        }
     }
 
     setupCanvas() {
-        // Get the actual container width
         const container = this.canvas.parentElement;
-        const containerWidth = container.clientWidth - 
-            parseFloat(getComputedStyle(container).paddingLeft) - 
-            parseFloat(getComputedStyle(container).paddingRight);
+        const maxWidth = container.clientWidth - 40;
         
-        // Load background map image if specified
         const mapImagePath = this.canvas.dataset.mapImage;
         if (mapImagePath) {
             const img = new Image();
+            // Always set crossOrigin
+            img.crossOrigin = 'anonymous';
             img.onload = () => {
                 this.backgroundImage = img;
                 
-                // Set canvas dimensions based on image size
-                if (this.isMobileDevice) {
-                    // On mobile, maintain image dimensions
-                    this.canvas.width = img.width;
-                    this.canvas.height = img.height;
-                    this.drawingLayer.width = img.width;
-                    this.drawingLayer.height = img.height;
-                } else {
-                    // On desktop, scale to container
-                    const scale = containerWidth / img.width;
-                    const scaledHeight = img.height * scale;
-                    this.canvas.width = containerWidth;
-                    this.canvas.height = scaledHeight;
-                    this.drawingLayer.width = containerWidth;
-                    this.drawingLayer.height = scaledHeight;
-                }
+                // Calculate scale to fit width while maintaining aspect ratio
+                const scale = Math.min(maxWidth / img.width, 1);
+                const scaledHeight = img.height * scale;
+                const scaledWidth = img.width * scale;
                 
-                // Draw background at exact size
-                this.ctx.drawImage(
-                    this.backgroundImage,
-                    0, 0,
-                    this.canvas.width,
-                    this.canvas.height
-                );
+                // Set dimensions
+                this.canvas.width = scaledWidth;
+                this.canvas.height = scaledHeight;
+                this.drawingLayer.width = scaledWidth;
+                this.drawingLayer.height = scaledHeight;
                 
-                // Load any existing drawing data
-                this.loadExistingDrawing();
-                
+                // Initial draw
                 this.redrawCanvas();
+               
+                // Load any existing drawings after background is loaded
+                this.loadExistingDrawing();
+            };
+            img.onerror = (error) => {
+                console.error('Error loading image:', error);
+                alert('Please use a local server (like Live Server) to run this application');
             };
             img.src = mapImagePath;
-        }
-
-        // Start animation loop
-        this.startAnimationLoop();
-    }
-
-    startAnimationLoop() {
-        const animate = () => {
-            if (this.needsRedraw) {
-                this.redrawCanvas();
-                this.needsRedraw = false;
-            }
-            this.requestAnimationId = requestAnimationFrame(animate);
-        };
-        animate();
-    }
-
-    redrawCanvas() {
-        // Clear main canvas
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-
-        // Draw background image
-        if (this.backgroundImage) {
-            const scale = this.canvas.width / this.backgroundImage.width;
-            const scaledHeight = this.backgroundImage.height * scale;
-            
-            // Draw background image
-            this.ctx.drawImage(
-                this.backgroundImage,
-                0, 0,
-                this.canvas.width,
-                scaledHeight
-            );
-
-            // Draw the drawing layer at same scale
-            this.ctx.drawImage(this.drawingLayer, 0, 0);
         }
     }
 
     setupEventListeners() {
-        // Only set up drawing events for desktop
-        if (!this.isMobileDevice) {
-            this.canvas.addEventListener('pointerdown', (e) => {
-                e.preventDefault();
-                this.handleStart(e);
-            });
-        }
+        // Drawing events
+        this.canvas.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            this.startDrawing(e);
+        });
+        
+        this.canvas.addEventListener('mousemove', (e) => {
+            e.preventDefault();
+            this.draw(e);
+        });
+        
+        this.canvas.addEventListener('mouseup', () => this.stopDrawing());
+        this.canvas.addEventListener('mouseout', () => this.stopDrawing());
 
-        // Handle window resize for all devices
+        // Tool selection
+        document.getElementById('brush').addEventListener('click', () => this.setTool('brush'));
+        document.getElementById('eraser').addEventListener('click', () => this.setTool('eraser'));
+        
+        // Color selection
+        document.getElementById('colorPicker').addEventListener('input', (e) => {
+            this.color = e.target.value;
+        });
+
+        // Handle window resize
         window.addEventListener('resize', this.handleResize.bind(this));
-        window.addEventListener('orientationchange', this.handleResize.bind(this));
     }
 
-    handleStart(e) {
+    startDrawing(e) {
         this.isDrawing = true;
         const pos = this.getPointerPos(e);
         this.lastDrawPoint = pos;
@@ -184,7 +137,7 @@ class MapEditor {
         this.drawingCtx.moveTo(pos.x, pos.y);
     }
 
-    handleMove(e) {
+    draw(e) {
         if (!this.isDrawing) return;
         
         const pos = this.getPointerPos(e);
@@ -198,11 +151,28 @@ class MapEditor {
         this.lastDrawPoint = pos;
     }
 
-    handleEnd(e) {
+    stopDrawing() {
         if (this.isDrawing) {
             this.isDrawing = false;
             this.drawingCtx.globalCompositeOperation = 'source-over';
             this.saveMapState();
+        }
+    }
+
+    redrawCanvas() {
+        // Clear main canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Draw background image
+        if (this.backgroundImage) {
+            this.ctx.drawImage(
+                this.backgroundImage,
+                0, 0,
+                this.canvas.width,
+                this.canvas.height
+            );
+
+            this.ctx.drawImage(this.drawingLayer, 0, 0);
         }
     }
 
@@ -235,20 +205,32 @@ class MapEditor {
     }
 
     async saveMapState() {
-        // Save locally
-        localStorage.setItem(window.location.pathname + '_mapData', this.canvas.toDataURL());
-        
-        // Save to Firebase
-        await this.saveToFirebase();
+        try {
+            // Save locally
+            localStorage.setItem(window.location.pathname + '_mapData', this.drawingLayer.toDataURL());
+            
+            // Save to Firebase
+            await this.mapRef.set({
+                mapData: this.drawingLayer.toDataURL(),
+                timestamp: firebase.database.ServerValue.TIMESTAMP
+            });
+        } catch (error) {
+            console.error('Failed to save map state:', error);
+            alert('Error saving changes. Please ensure you are using a local server.');
+        }
     }
 
     loadFromFirebase(data) {
         if (data.mapData) {
             const img = new Image();
+            img.crossOrigin = 'anonymous';
             img.onload = () => {
                 this.drawingCtx.clearRect(0, 0, this.drawingLayer.width, this.drawingLayer.height);
                 this.drawingCtx.drawImage(img, 0, 0);
                 this.redrawCanvas();
+            };
+            img.onerror = (error) => {
+                console.error('Error loading from Firebase:', error);
             };
             img.src = data.mapData;
         }
@@ -262,51 +244,48 @@ class MapEditor {
 
     handleResize() {
         if (this.backgroundImage) {
-            // Skip resize handling on mobile
-            if (this.isMobileDevice) return;
-            
-            // Get the actual container width
+            // Get container dimensions
             const container = this.canvas.parentElement;
-            const containerWidth = container.clientWidth - 
-                parseFloat(getComputedStyle(container).paddingLeft) - 
-                parseFloat(getComputedStyle(container).paddingRight);
+            const maxWidth = container.clientWidth - 40;
             
             // Calculate scale while maintaining aspect ratio
-            const scale = containerWidth / this.backgroundImage.width;
+            const scale = Math.min(maxWidth / this.backgroundImage.width, 1);
             const scaledHeight = this.backgroundImage.height * scale;
+            const scaledWidth = this.backgroundImage.width * scale;
             
-            // Store current drawing
-            const drawingData = this.drawingLayer.toDataURL();
+            // Create temporary canvas to store current drawing
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = this.drawingLayer.width;
+            tempCanvas.height = this.drawingLayer.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(this.drawingLayer, 0, 0);
             
             // Update dimensions
-            this.canvas.width = containerWidth;
+            this.canvas.width = scaledWidth;
             this.canvas.height = scaledHeight;
-            this.drawingLayer.width = containerWidth;
+            this.drawingLayer.width = scaledWidth;
             this.drawingLayer.height = scaledHeight;
             
-            // Redraw everything
+            // Draw background
             this.ctx.drawImage(
                 this.backgroundImage,
                 0, 0,
-                containerWidth,
+                scaledWidth,
                 scaledHeight
             );
             
-            const img = new Image();
-            img.onload = () => {
-                this.drawingCtx.drawImage(img, 0, 0);
-                this.redrawCanvas();
-            };
-            img.src = drawingData;
+            // Draw existing drawing content scaled to new size
+            this.drawingCtx.drawImage(tempCanvas, 0, 0, scaledWidth, scaledHeight);
+            this.redrawCanvas();
         }
     }
 
     loadExistingDrawing() {
-        // Check Firebase first, then fallback to localStorage
         this.mapRef.once('value').then((snapshot) => {
             const data = snapshot.val();
             if (data && data.mapData) {
                 const img = new Image();
+                img.crossOrigin = 'anonymous';
                 img.onload = () => {
                     this.drawingCtx.drawImage(img, 0, 0);
                     this.redrawCanvas();
