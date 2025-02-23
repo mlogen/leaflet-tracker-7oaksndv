@@ -11,7 +11,7 @@ class MapEditor {
         this.lastDrawPoint = null;
         this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
-        // Create a separate layer for drawings
+        // Create a separate .layer for drawings
         this.drawingLayer = document.createElement('canvas');
         this.drawingCtx = this.drawingLayer.getContext('2d');
 

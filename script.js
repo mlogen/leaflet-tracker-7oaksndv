@@ -23,7 +23,7 @@ function adjustBrushSize(size) {
     document.getElementById('brushSize').textContent = `Size: ${size}px`;
 }
 
-// 3. Precision Mode
+// 3.. Precision Mode
 let isPrecisionMode = false;
 function togglePrecisionMode() {
     isPrecisionMode = !isPrecisionMode;

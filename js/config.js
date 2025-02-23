@@ -1,4 +1,4 @@
-// Create new file for Firebase config
+// Create new file for .Firebase config
 const firebaseConfig = {
     apiKey: "AIzaSyDML4Kxu4MxOivETLS-m4vxnBMIONljarU",
     authDomain: "leaflet-tracker-2025.firebaseapp.com",

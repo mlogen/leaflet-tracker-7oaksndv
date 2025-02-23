@@ -19,7 +19,7 @@ nav {
     padding: 1rem;
     box-shadow: 0 2px 4px var(--shadow-color);
     position: relative;
-    overflow-x: auto;  /* Allow horizontal scroll if needed */
+    overflow-x: auto;  /* Allow .horizontal scroll if needed */
 }
 
 .nav-container {
