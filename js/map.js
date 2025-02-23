@@ -64,55 +64,17 @@ class MapEditor {
             img.onload = () => {
                 this.backgroundImage = img;
                 
-                // Log original dimensions
-                console.log('Original Image:', {
-                    width: img.width,
-                    height: img.height,
-                    naturalWidth: img.naturalWidth,
-                    naturalHeight: img.naturalHeight
-                });
-
-                // Set canvas to exact image dimensions
+                // Set canvas size to exact image dimensions
                 this.canvas.width = img.width;
                 this.canvas.height = img.height;
                 this.drawingLayer.width = img.width;
                 this.drawingLayer.height = img.height;
 
-                // Verify canvas dimensions match image exactly
-                const verifyDimensions = () => {
-                    const computed = window.getComputedStyle(this.canvas);
-                    console.log('Canvas Verification:', {
-                        canvas: {
-                            width: this.canvas.width,
-                            height: this.canvas.height,
-                            clientWidth: this.canvas.clientWidth,
-                            clientHeight: this.canvas.clientHeight,
-                            computedWidth: computed.width,
-                            computedHeight: computed.height,
-                            offsetWidth: this.canvas.offsetWidth,
-                            offsetHeight: this.canvas.offsetHeight
-                        },
-                        image: {
-                            width: this.backgroundImage.width,
-                            height: this.backgroundImage.height
-                        },
-                        drawingLayer: {
-                            width: this.drawingLayer.width,
-                            height: this.drawingLayer.height
-                        }
-                    });
-
-                    // Assert dimensions match
-                    const dimensionsMatch = 
-                        this.canvas.width === img.width &&
-                        this.canvas.height === img.height &&
-                        this.drawingLayer.width === img.width &&
-                        this.drawingLayer.height === img.height;
-
-                    if (!dimensionsMatch) {
-                        console.error('Dimension mismatch detected!');
-                    }
-                };
+                // Force the canvas style to match exact dimensions
+                this.canvas.style.width = img.width + 'px';
+                this.canvas.style.height = img.height + 'px';
+                this.drawingLayer.style.width = img.width + 'px';
+                this.drawingLayer.style.height = img.height + 'px';
 
                 // Draw at exact 1:1 scale
                 this.ctx.drawImage(
@@ -124,10 +86,6 @@ class MapEditor {
                 
                 this.redrawCanvas();
                 this.loadExistingDrawing();
-                
-                // Verify after initial setup and after a short delay
-                verifyDimensions();
-                setTimeout(verifyDimensions, 1000);
             };
             img.onerror = (error) => {
                 console.error('Error loading image:', error);
