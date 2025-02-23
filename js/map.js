@@ -10,8 +10,7 @@ class MapEditor {
         this.eraserSize = 30;
         this.lastDrawPoint = null;
         this.isErasing = false;
-        this.lastEraserTime = 0;
-        this.minEraserDelay = 100; // Minimum time between eraser actions in ms
+        this.lastDrawingState = null; // Store last valid drawing state
         
         // Create a separate layer for drawings
         this.drawingLayer = document.createElement('canvas');
@@ -139,10 +138,28 @@ class MapEditor {
     }
 
     setupEventListeners() {
+        // Prevent double-click on the entire canvas
+        this.canvas.addEventListener('dblclick', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }, { capture: true });
+
+        // Prevent double-click selection
+        this.canvas.style.userSelect = 'none';
+        this.canvas.style.webkitUserSelect = 'none';
+        this.canvas.style.msUserSelect = 'none';
+        this.canvas.style.webkitTouchCallout = 'none';
+        
         this.canvas.addEventListener('pointerdown', (e) => {
             e.preventDefault();
+            if (e.detail > 1) { // Prevent multi-clicks
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
             this.handleStart(e);
-        });
+        }, { capture: true });
 
         this.canvas.addEventListener('pointermove', (e) => {
             e.preventDefault();
@@ -174,15 +191,8 @@ class MapEditor {
     }
 
     handleStart(e) {
-        const now = Date.now();
-        
-        // Prevent rapid eraser clicks
-        if (this.tool === 'eraser') {
-            if (now - this.lastEraserTime < this.minEraserDelay) {
-                return;
-            }
-            this.lastEraserTime = now;
-        }
+        // Store current state before starting new action
+        this.lastDrawingState = this.drawingLayer.toDataURL();
         
         this.isDrawing = true;
         const pos = this.getPointerPos(e);
@@ -223,7 +233,10 @@ class MapEditor {
             this.isDrawing = false;
             this.isErasing = false;
             this.drawingCtx.globalCompositeOperation = 'source-over';
-            this.saveMapState();
+            // Only save state if something actually changed
+            if (this.lastDrawingState !== this.drawingLayer.toDataURL()) {
+                this.saveMapState();
+            }
         }
     }
 
