@@ -125,11 +125,11 @@ main {
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    overflow: scroll;
+    overflow: auto;
     padding: 1rem;
-    width: fit-content;
-    height: fit-content;
-    max-height: 90vh;
+    width: min-content;
+    height: min-content;
+    max-height: 95vh;
     box-sizing: border-box;
     margin: 0 auto;
 }
@@ -238,15 +238,15 @@ main {
 }
 
 #mapCanvas {
-    width: auto;
-    height: auto;
+    width: 100%;
+    height: 100%;
     border: 2px solid var(--primary-color);
     padding: 10px;
     background-color: #f0f0f0;
     cursor: default;
     border-radius: 4px;
-    transition: border-color 0.3s ease;
     display: block;
+    box-sizing: content-box;
 }
 
 #mapCanvas:hover {

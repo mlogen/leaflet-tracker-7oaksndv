@@ -63,10 +63,32 @@ class MapEditor {
             img.crossOrigin = 'anonymous';
             img.onload = () => {
                 this.backgroundImage = img;
+                // Log original image dimensions
+                console.log('Original Image Dimensions:', {
+                    width: img.width,
+                    height: img.height
+                });
+
                 this.canvas.width = img.width;
                 this.canvas.height = img.height;
                 this.drawingLayer.width = img.width;
                 this.drawingLayer.height = img.height;
+
+                // Log canvas dimensions
+                console.log('Canvas Dimensions:', {
+                    width: this.canvas.width,
+                    height: this.canvas.height,
+                    displayWidth: this.canvas.offsetWidth,
+                    displayHeight: this.canvas.offsetHeight,
+                    clientRect: this.canvas.getBoundingClientRect()
+                });
+
+                this.ctx.drawImage(
+                    this.backgroundImage,
+                    0, 0,
+                    img.width,
+                    img.height
+                );
                 this.redrawCanvas();
                 this.loadExistingDrawing();
             };
@@ -187,6 +209,18 @@ class MapEditor {
 
         // Draw background image
         if (this.backgroundImage) {
+            // Log dimensions during redraw
+            console.log('Redraw Dimensions:', {
+                canvas: {
+                    width: this.canvas.width,
+                    height: this.canvas.height
+                },
+                image: {
+                    width: this.backgroundImage.width,
+                    height: this.backgroundImage.height
+                }
+            });
+
             this.ctx.drawImage(
                 this.backgroundImage,
                 0, 0,
@@ -202,6 +236,15 @@ class MapEditor {
         const rect = this.canvas.getBoundingClientRect();
         const scaleX = this.canvas.width / rect.width;
         const scaleY = this.canvas.height / rect.height;
+        // Log pointer scaling
+        console.log('Pointer Scaling:', {
+            canvasWidth: this.canvas.width,
+            canvasHeight: this.canvas.height,
+            displayWidth: rect.width,
+            displayHeight: rect.height,
+            scaleX,
+            scaleY
+        });
         return {
             x: (e.clientX - rect.left) * scaleX,
             y: (e.clientY - rect.top) * scaleY
