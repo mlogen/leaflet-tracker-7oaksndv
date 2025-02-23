@@ -249,6 +249,13 @@ footer {
     margin-top: 2rem;
 }
 
+.version {
+    color: var(--text-color);
+    font-size: 0.9rem;
+    font-weight: 500;
+    opacity: 0.7;
+}
+
 .mobile-message {
     position: fixed;
     top: 50%;
