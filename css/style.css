@@ -130,6 +130,7 @@ main {
     width: calc(100% - 2rem);
     box-sizing: border-box;
     -webkit-overflow-scrolling: touch;
+    min-height: 200px;
 }
 
 .map-tools {
@@ -272,6 +273,8 @@ footer {
         overflow: hidden;
         -webkit-overflow-scrolling: touch;
         width: calc(100% - 2rem);
+        height: auto;
+        min-height: 200px;
     }
     
     #mapCanvas {
@@ -281,5 +284,7 @@ footer {
         max-height: none !important;
         transform: none !important;
         -webkit-transform: none !important;
+        touch-action: manipulation;
+        -webkit-touch-callout: none;
     }
 } 

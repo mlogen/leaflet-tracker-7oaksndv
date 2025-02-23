@@ -9,7 +9,7 @@ class MapEditor {
         this.brushSize = 10;
         this.eraserSize = 30;
         this.lastDrawPoint = null;
-        this.lastClick = 0;  // For double-click prevention
+        this.isErasing = false;  // Track eraser state
         
         // Create a separate layer for drawings
         this.drawingLayer = document.createElement('canvas');
@@ -137,15 +137,8 @@ class MapEditor {
     }
 
     setupEventListeners() {
-        // Unified pointer events for both mouse and touch
         this.canvas.addEventListener('pointerdown', (e) => {
             e.preventDefault();
-            // Prevent double-click from starting a draw
-            const now = Date.now();
-            if (now - this.lastClick < 300) { // 300ms threshold
-                return;
-            }
-            this.lastClick = now;
             this.handleStart(e);
         });
 
@@ -163,17 +156,6 @@ class MapEditor {
             e.preventDefault();
             this.handleEnd(e);
         });
-
-        // Prevent all double-click default behaviors
-        this.canvas.addEventListener('dblclick', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-        }, { capture: true });
-        
-        // Prevent double-click selection
-        this.canvas.style.userSelect = 'none';
-        this.canvas.style.webkitUserSelect = 'none';
-        this.canvas.style.webkitTouchCallout = 'none';
 
         // Tool selection
         document.getElementById('brush').addEventListener('click', () => this.setTool('brush'));
@@ -194,10 +176,17 @@ class MapEditor {
         const pos = this.getPointerPos(e);
         this.lastDrawPoint = pos;
         
-        // Set drawing properties
-        this.drawingCtx.globalCompositeOperation = this.tool === 'eraser' ? 'destination-out' : 'source-over';
-        this.drawingCtx.lineWidth = this.tool === 'eraser' ? this.eraserSize : this.brushSize;
-        this.drawingCtx.strokeStyle = this.color;
+        // Configure context based on tool
+        if (this.tool === 'eraser') {
+            this.isErasing = true;
+            this.drawingCtx.globalCompositeOperation = 'destination-out';
+            this.drawingCtx.lineWidth = this.eraserSize;
+        } else {
+            this.isErasing = false;
+            this.drawingCtx.globalCompositeOperation = 'source-over';
+            this.drawingCtx.lineWidth = this.brushSize;
+            this.drawingCtx.strokeStyle = this.color;
+        }
         
         this.drawingCtx.beginPath();
         this.drawingCtx.moveTo(pos.x, pos.y);
@@ -220,6 +209,7 @@ class MapEditor {
     handleEnd(e) {
         if (this.isDrawing) {
             this.isDrawing = false;
+            this.isErasing = false;
             this.drawingCtx.globalCompositeOperation = 'source-over';
             this.saveMapState();
         }
@@ -281,8 +271,11 @@ class MapEditor {
 
     handleResize() {
         if (this.backgroundImage) {
-            // Get container width without padding
-            const containerWidth = this.canvas.parentElement.clientWidth - 40;
+            // Get the actual container width
+            const container = this.canvas.parentElement;
+            const containerWidth = container.clientWidth - 
+                parseFloat(getComputedStyle(container).paddingLeft) - 
+                parseFloat(getComputedStyle(container).paddingRight);
             
             // Calculate scale while maintaining aspect ratio
             const scale = containerWidth / this.backgroundImage.width;
