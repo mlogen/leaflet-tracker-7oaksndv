@@ -10,7 +10,7 @@ class MapEditor {
         this.eraserSize = 30;
         this.lastDrawPoint = null;
         this.isErasing = false;
-        this.lastDrawingState = null; // Store last valid drawing state
+        this.isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
         // Create a separate layer for drawings
         this.drawingLayer = document.createElement('canvas');
@@ -57,6 +57,15 @@ class MapEditor {
 
         this.setupCanvas();
         this.setupEventListeners();
+        
+        // Hide editing tools and show message on mobile
+        if (this.isMobileDevice) {
+            const mapTools = document.querySelector('.map-tools');
+            if (mapTools) {
+                mapTools.innerHTML = '<div class="mobile-message">View only on mobile devices</div>';
+                mapTools.classList.add('mobile-view');
+            }
+        }
     }
 
     setupCanvas() {
@@ -151,41 +160,44 @@ class MapEditor {
         this.canvas.style.msUserSelect = 'none';
         this.canvas.style.webkitTouchCallout = 'none';
         
-        this.canvas.addEventListener('pointerdown', (e) => {
-            e.preventDefault();
-            if (e.detail > 1) { // Prevent multi-clicks
+        // Only set up drawing events for desktop
+        if (!this.isMobileDevice) {
+            this.canvas.addEventListener('pointerdown', (e) => {
                 e.preventDefault();
-                e.stopPropagation();
-                return false;
-            }
-            this.handleStart(e);
-        }, { capture: true });
+                if (e.detail > 1) { // Prevent multi-clicks
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+                this.handleStart(e);
+            }, { capture: true });
 
-        this.canvas.addEventListener('pointermove', (e) => {
-            e.preventDefault();
-            this.handleMove(e);
-        });
+            this.canvas.addEventListener('pointermove', (e) => {
+                e.preventDefault();
+                this.handleMove(e);
+            });
 
-        this.canvas.addEventListener('pointerup', (e) => {
-            e.preventDefault();
-            this.handleEnd(e);
-        });
+            this.canvas.addEventListener('pointerup', (e) => {
+                e.preventDefault();
+                this.handleEnd(e);
+            });
 
-        this.canvas.addEventListener('pointerout', (e) => {
-            e.preventDefault();
-            this.handleEnd(e);
-        });
+            this.canvas.addEventListener('pointerout', (e) => {
+                e.preventDefault();
+                this.handleEnd(e);
+            });
 
-        // Tool selection
-        document.getElementById('brush').addEventListener('click', () => this.setTool('brush'));
-        document.getElementById('eraser').addEventListener('click', () => this.setTool('eraser'));
-        
-        // Color selection
-        document.getElementById('colorPicker').addEventListener('input', (e) => {
-            this.color = e.target.value;
-        });
+            // Tool selection
+            document.getElementById('brush').addEventListener('click', () => this.setTool('brush'));
+            document.getElementById('eraser').addEventListener('click', () => this.setTool('eraser'));
+            
+            // Color selection
+            document.getElementById('colorPicker').addEventListener('input', (e) => {
+                this.color = e.target.value;
+            });
+        }
 
-        // Handle window resize
+        // Handle window resize for all devices
         window.addEventListener('resize', this.handleResize.bind(this));
         window.addEventListener('orientationchange', this.handleResize.bind(this));
     }
