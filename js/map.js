@@ -74,7 +74,7 @@ class MapEditor {
             const img = new Image();
             img.onload = () => {
                 this.backgroundImage = img;
-                // Calculate scale to fit width
+                // Set initial height based on aspect ratio
                 const scale = this.canvas.width / img.width;
                 const scaledHeight = img.height * scale;
                 this.canvas.height = scaledHeight;
@@ -105,10 +105,10 @@ class MapEditor {
 
         // Draw background image
         if (this.backgroundImage) {
-            // Draw scaled to fit width
             const scale = this.canvas.width / this.backgroundImage.width;
             const scaledHeight = this.backgroundImage.height * scale;
             
+            // Draw background image
             this.ctx.drawImage(
                 this.backgroundImage,
                 0, 0,
@@ -241,6 +241,26 @@ class MapEditor {
     cleanup() {
         if (this.requestAnimationId) {
             cancelAnimationFrame(this.requestAnimationId);
+        }
+    }
+
+    handleResize() {
+        if (this.backgroundImage) {
+            // Store current canvas state
+            const currentState = this.canvas.toDataURL();
+            
+            // Resize canvas
+            this.canvas.width = this.canvas.offsetWidth;
+            const scale = this.canvas.width / this.backgroundImage.width;
+            const scaledHeight = this.backgroundImage.height * scale;
+            this.canvas.height = scaledHeight;
+            
+            // Restore canvas state
+            const img = new Image();
+            img.onload = () => {
+                this.ctx.drawImage(img, 0, 0, this.canvas.width, scaledHeight);
+            };
+            img.src = currentState;
         }
     }
 }
