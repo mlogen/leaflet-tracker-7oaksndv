@@ -127,7 +127,8 @@ main {
     gap: 1rem;
     overflow: auto;
     padding: 1rem;
-    box-sizing: border-box;
+    /* Prevent any resizing */
+    resize: none;
     margin: 0 auto;
 }
 
@@ -235,16 +236,22 @@ main {
 }
 
 #mapCanvas {
+    /* Force canvas to maintain exact dimensions */
+    max-width: none;
+    min-width: none;
+    max-height: none;
+    min-height: none;
     border: 2px solid var(--primary-color);
     padding: 10px;
     background-color: #f0f0f0;
     cursor: default;
     border-radius: 4px;
     display: block;
-}
-
-#mapCanvas:hover {
-    border-color: var(--button-hover);
+    /* Prevent any browser scaling */
+    transform: none;
+    transform-origin: unset;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
 }
 
 footer {
