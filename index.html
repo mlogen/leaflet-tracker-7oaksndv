@@ -38,28 +38,9 @@
     </main>
 
     <footer>
-        <div class="version">v1.68-desktop</div>
+        <div class="version">v1.70-desktop</div>
     </footer>
 
     <script src="js/map.js"></script>
-    <script>
-        // Test Firebase connection
-        function testFirebase() {
-            const testRef = firebase.database().ref('test');
-            testRef.set({
-                timestamp: Date.now(),
-                test: 'Connection working'
-            })
-            .then(() => console.log('Firebase write successful'))
-            .catch(error => console.error('Firebase write failed:', error));
-
-            testRef.once('value')
-            .then(snapshot => console.log('Firebase read successful:', snapshot.val()))
-            .catch(error => console.error('Firebase read failed:', error));
-        }
-        
-        // Run test when page loads
-        window.addEventListener('load', testFirebase);
-    </script>
 </body>
 </html> 

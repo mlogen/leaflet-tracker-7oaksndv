@@ -35,34 +35,9 @@
     </main>
 
     <footer>
-        <div class="version">v1.69-desktop</div>
+        <div class="version">v1.70-desktop</div>
     </footer>
 
     <script src="../js/map.js"></script>
-    <script>
-        // Function to clear database data
-        function clearMapData() {
-            const path = window.location.pathname.includes('hextable') ? 'hextable-map' : 'swanley-map';
-            firebase.database().ref(path).remove()
-                .then(() => {
-                    console.log(`Cleared data for ${path}`);
-                    // Reload the page to show clean state
-                    window.location.reload();
-                })
-                .catch(error => console.error('Error clearing data:', error));
-        }
-
-        // Add button to clear data
-        const footer = document.querySelector('footer');
-        const clearButton = document.createElement('button');
-        clearButton.textContent = 'Clear Map Data';
-        clearButton.style.marginLeft = '20px';
-        clearButton.onclick = () => {
-            if (confirm('Are you sure you want to clear all drawings from this map?')) {
-                clearMapData();
-            }
-        };
-        footer.appendChild(clearButton);
-    </script>
 </body>
 </html> 
