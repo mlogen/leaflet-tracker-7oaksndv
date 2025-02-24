@@ -274,4 +274,12 @@ footer {
     padding: 0.5rem;
     background: none;
     justify-content: center;
+}
+
+.area-stats {
+    color: black;
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    margin-left: auto;
 } 

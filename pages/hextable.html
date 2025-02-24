@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Canvassing Map Tracker</title>
+    <title>Swanley Tracker</title>
     <link rel="icon" type="image/x-icon" href="../assets/images/favicon.ico">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,18 +17,13 @@
     <nav>
         <div class="nav-container">
             <div class="nav-links">
-                <a href="../index.html">Swanley</a>
+                <a href="../index.html">Swanley Town</a>
                 <a href="hextable.html" class="active">Hextable</a>
             </div>
         </div>
     </nav>
 
     <main>
-        <div class="area-info">
-            <h1>Hextable</h1>
-            <p>Number of households: TBD</p>
-        </div>
-
         <div class="map-container">
             <div class="map-tools">
                 <button id="brush" class="tool active">Brush</button>
@@ -40,9 +35,34 @@
     </main>
 
     <footer>
-        <div class="version">v1.68-desktop</div>
+        <div class="version">v1.69-desktop</div>
     </footer>
 
     <script src="../js/map.js"></script>
+    <script>
+        // Function to clear database data
+        function clearMapData() {
+            const path = window.location.pathname.includes('hextable') ? 'hextable-map' : 'swanley-map';
+            firebase.database().ref(path).remove()
+                .then(() => {
+                    console.log(`Cleared data for ${path}`);
+                    // Reload the page to show clean state
+                    window.location.reload();
+                })
+                .catch(error => console.error('Error clearing data:', error));
+        }
+
+        // Add button to clear data
+        const footer = document.querySelector('footer');
+        const clearButton = document.createElement('button');
+        clearButton.textContent = 'Clear Map Data';
+        clearButton.style.marginLeft = '20px';
+        clearButton.onclick = () => {
+            if (confirm('Are you sure you want to clear all drawings from this map?')) {
+                clearMapData();
+            }
+        };
+        footer.appendChild(clearButton);
+    </script>
 </body>
 </html> 
