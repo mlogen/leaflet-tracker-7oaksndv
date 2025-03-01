@@ -1,0 +1,48 @@
+{
+  "rules": {
+    "seal-map": {
+      ".read": true,
+      ".write": true
+    },
+    "otford-map": {
+      ".read": true,
+      ".write": true
+    },
+    "kemsing-map": {
+      ".read": true,
+      ".write": true
+    },
+    "swanleyvillage-map": {
+      ".read": true,
+      ".write": true
+    },
+    "hortonkirby-map": {
+      ".read": true,
+      ".write": true
+    },
+    "eynsford-map": {
+      ".read": true,
+      ".write": true
+    },
+    "southdarenth-map": {
+      ".read": true,
+      ".write": true
+    },
+    "crockenhill-map": {
+      ".read": true,
+      ".write": true
+    },
+    "farningham-map": {
+      ".read": true,
+      ".write": true
+    },
+    "shoreham-map": {
+      ".read": true,
+      ".write": true
+    },
+    "$other": {
+      ".read": false,
+      ".write": false
+    }
+  }
+} 

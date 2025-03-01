@@ -316,5 +316,8 @@ class MapEditor {
 
 // Initialize the map editor when the page loads
 window.addEventListener('load', () => {
-    new MapEditor();
+    // Only initialize MapEditor if we're on a page with a map canvas
+    if (document.getElementById('mapCanvas')) {
+        new MapEditor();
+    }
 }); 
