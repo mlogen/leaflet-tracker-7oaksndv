@@ -10,7 +10,7 @@ class MapEditor {
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
         this.isDrawing = false;
         this.tool = 'brush';
-        this.color = '#FF0000';
+        this.color = '#00FFFF';
         this.backgroundImage = null;
         this.brushSize = 10;
         this.eraserSize = 30;
