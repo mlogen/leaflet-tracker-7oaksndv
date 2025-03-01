@@ -196,4 +196,22 @@ footer {
     font-weight: 500;
     padding: 0.5rem 1rem;
     margin-left: auto;
+}
+
+.home-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px var(--shadow-color);
+}
+
+.home-image {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px;
 } 
