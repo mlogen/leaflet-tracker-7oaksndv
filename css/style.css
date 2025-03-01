@@ -284,6 +284,13 @@ footer {
     max-width: 250px;
 }
 
+/* Custom size for Otford map */
+.otford-map {
+    transform: scale(0.8); /* Reduce size by 20% */
+    transform-origin: top left; /* Scale from top left corner */
+    margin-right: 20%; /* Add margin to compensate for the scaling */
+}
+
 /* Add responsive behavior for smaller screens */
 @media (max-width: 768px) {
     .home-content {
