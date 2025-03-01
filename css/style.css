@@ -210,7 +210,7 @@ footer {
     overflow: hidden;
     border-radius: 8px;
     box-shadow: 0 2px 8px var(--shadow-color);
-    width: 50%;
+    width: 25%;
 }
 
 .home-image {
@@ -282,6 +282,6 @@ footer {
     }
     
     .home-container {
-        width: 80%; /* Larger on mobile but still reduced */
+        width: 50%;
     }
 } 
