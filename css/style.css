@@ -240,6 +240,7 @@ footer {
     margin-bottom: 1rem;
     color: var(--text-color);
     text-align: center;
+    font-size: 1.2rem;
 }
 
 .households-table {
@@ -249,11 +250,13 @@ footer {
     border-radius: 0;
     overflow: hidden;
     border: 2px solid black;
+    font-size: 0.85rem;
+    line-height: 1.2;
 }
 
 .households-table th,
 .households-table td {
-    padding: 0.75rem;
+    padding: 0.5rem;
     text-align: left;
     border: 2px solid black;
 }
@@ -273,6 +276,12 @@ footer {
 
 .households-table td:nth-child(2) {
     text-align: center;
+}
+
+/* Make the notes column more compact */
+.households-table td:nth-child(3) {
+    font-size: 0.8rem;
+    max-width: 250px;
 }
 
 /* Add responsive behavior for smaller screens */
