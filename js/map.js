@@ -69,9 +69,6 @@ class MapEditor {
         } else if (path.includes('shoreham')) {
             this.mapRef = firebase.database().ref('shoreham-map');
             console.log('Connected to Shoreham database path:', this.mapRef.toString());
-        } else if (path.includes('hextable')) {
-            this.mapRef = firebase.database().ref('hextable-map');
-            console.log('Connected to Hextable database path:', this.mapRef.toString());
         } else {
             this.mapRef = firebase.database().ref('swanley-map');
             console.log('Connected to Swanley database path:', this.mapRef.toString());
