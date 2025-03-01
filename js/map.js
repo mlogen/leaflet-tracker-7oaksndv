@@ -37,7 +37,39 @@ class MapEditor {
 
     setupFirebase() {
         // Create completely separate database paths for each map
-        if (window.location.pathname.includes('hextable')) {
+        const path = window.location.pathname;
+        
+        if (path.includes('seal')) {
+            this.mapRef = firebase.database().ref('seal-map');
+            console.log('Connected to Seal database path:', this.mapRef.toString());
+        } else if (path.includes('kemsing')) {
+            this.mapRef = firebase.database().ref('kemsing-map');
+            console.log('Connected to Kemsing database path:', this.mapRef.toString());
+        } else if (path.includes('otford')) {
+            this.mapRef = firebase.database().ref('otford-map');
+            console.log('Connected to Otford database path:', this.mapRef.toString());
+        } else if (path.includes('swanleyvillage')) {
+            this.mapRef = firebase.database().ref('swanleyvillage-map');
+            console.log('Connected to Swanley Village database path:', this.mapRef.toString());
+        } else if (path.includes('hortonkirby')) {
+            this.mapRef = firebase.database().ref('hortonkirby-map');
+            console.log('Connected to Horton Kirby database path:', this.mapRef.toString());
+        } else if (path.includes('eynsford')) {
+            this.mapRef = firebase.database().ref('eynsford-map');
+            console.log('Connected to Eynsford database path:', this.mapRef.toString());
+        } else if (path.includes('farningham')) {
+            this.mapRef = firebase.database().ref('farningham-map');
+            console.log('Connected to Farningham database path:', this.mapRef.toString());
+        } else if (path.includes('southdarenth')) {
+            this.mapRef = firebase.database().ref('southdarenth-map');
+            console.log('Connected to South Darenth database path:', this.mapRef.toString());
+        } else if (path.includes('crockenhill')) {
+            this.mapRef = firebase.database().ref('crockenhill-map');
+            console.log('Connected to Crockenhill database path:', this.mapRef.toString());
+        } else if (path.includes('shoreham')) {
+            this.mapRef = firebase.database().ref('shoreham-map');
+            console.log('Connected to Shoreham database path:', this.mapRef.toString());
+        } else if (path.includes('hextable')) {
             this.mapRef = firebase.database().ref('hextable-map');
             console.log('Connected to Hextable database path:', this.mapRef.toString());
         } else {
