@@ -2,51 +2,53 @@
 const fs = require('fs');
 const path = require('path');
 
-// Directory containing HTML files
-const pagesDir = path.join(__dirname, 'pages');
+// Define the directory paths
+const rootDir = '.';
+const pagesDir = path.join(rootDir, 'pages');
 
 console.log(`Looking for HTML files in: ${pagesDir}`);
 
-try {
-    // Get all HTML files in the directory
-    const htmlFiles = fs.readdirSync(pagesDir).filter(file => file.endsWith('.html'));
-    console.log(`Found ${htmlFiles.length} HTML files: ${htmlFiles.join(', ')}`);
+// Function to update meta tags in HTML files
+function updateMetaTags(filePath) {
+    try {
+        // Read the file content
+        let content = fs.readFileSync(filePath, 'utf8');
+        
+        // Check if the file already has the old meta tag
+        if (content.includes('<meta http-equiv="Permissions-Policy" content="interest-cohort=()">')) {
+            // Replace the old meta tag with the new one
+            content = content.replace(
+                '<meta http-equiv="Permissions-Policy" content="interest-cohort=()">',
+                '<meta http-equiv="Permissions-Policy" content="browsing-topics=(), interest-cohort=()">'
+            );
+            
+            // Write the updated content back to the file
+            fs.writeFileSync(filePath, content, 'utf8');
+            console.log(`Updated meta tag in ${filePath}`);
+        } else {
+            console.log(`No meta tag to update in ${filePath}`);
+        }
+    } catch (error) {
+        console.error(`Error processing ${filePath}:`, error);
+    }
+}
 
-    // Process each HTML file
-    htmlFiles.forEach(file => {
-        try {
+// Process the index.html file
+const indexPath = path.join(rootDir, 'index.html');
+if (fs.existsSync(indexPath)) {
+    updateMetaTags(indexPath);
+}
+
+// Process all HTML files in the pages directory
+if (fs.existsSync(pagesDir)) {
+    const files = fs.readdirSync(pagesDir);
+    
+    files.forEach(file => {
+        if (file.endsWith('.html')) {
             const filePath = path.join(pagesDir, file);
-            console.log(`Processing file: ${filePath}`);
-            
-            let content = fs.readFileSync(filePath, 'utf8');
-            console.log(`File content length: ${content.length} characters`);
-            
-            // Check if the meta tag already exists
-            if (!content.includes('http-equiv="Permissions-Policy"')) {
-                console.log(`Meta tag not found in ${file}, adding it...`);
-                
-                // Add the meta tag after the viewport meta tag
-                const newContent = content.replace(
-                    '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">',
-                    '<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">\n    <meta http-equiv="Permissions-Policy" content="interest-cohort=()">'
-                );
-                
-                if (content === newContent) {
-                    console.log(`Warning: Content unchanged for ${file}. Viewport meta tag might be different.`);
-                } else {
-                    // Write the updated content back to the file
-                    fs.writeFileSync(filePath, newContent, 'utf8');
-                    console.log(`Updated ${file} successfully`);
-                }
-            } else {
-                console.log(`${file} already has the meta tag`);
-            }
-        } catch (fileError) {
-            console.error(`Error processing file ${file}:`, fileError);
+            updateMetaTags(filePath);
         }
     });
+}
 
-    console.log('All HTML files have been processed.');
-} catch (error) {
-    console.error('Error:', error);
-} 
+console.log('Meta tag update completed.'); 

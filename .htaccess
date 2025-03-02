@@ -1,0 +1,2 @@
+# Disable FLoC tracking
+Header always set Permissions-Policy "interest-cohort=()" 
