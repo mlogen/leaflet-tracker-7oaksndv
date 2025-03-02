@@ -131,11 +131,25 @@ class MapEditor {
             this.drawingLayer.width = img.width;
             this.drawingLayer.height = img.height;
 
-            // Force the canvas style to match exact dimensions
-            this.canvas.style.width = img.width + 'px';
-            this.canvas.style.height = img.height + 'px';
-            this.drawingLayer.style.width = img.width + 'px';
-            this.drawingLayer.style.height = img.height + 'px';
+            // If canvas has width/height attributes, use those for initial sizing
+            const canvasWidth = this.canvas.getAttribute('width');
+            const canvasHeight = this.canvas.getAttribute('height');
+            
+            if (canvasWidth && canvasHeight) {
+                // Use the predefined dimensions from HTML
+                this.canvas.style.width = '100%';
+                this.canvas.style.height = '100%';
+                this.canvas.style.position = 'absolute';
+                this.canvas.style.top = '0';
+                this.canvas.style.left = '0';
+            } else {
+                // Fall back to exact dimensions if not specified
+                this.canvas.style.width = img.width + 'px';
+                this.canvas.style.height = img.height + 'px';
+            }
+            
+            this.drawingLayer.style.width = this.canvas.style.width;
+            this.drawingLayer.style.height = this.canvas.style.height;
 
             // Draw at exact 1:1 scale
             this.ctx.drawImage(
