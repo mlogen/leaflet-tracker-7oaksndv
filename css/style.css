@@ -29,7 +29,7 @@ nav {
     top: 0; /* Stick to the top */
     z-index: 1000; /* Ensure navbar stays on top */
     border-bottom: 1px solid rgba(255, 255, 255, 0.5); /* More visible border */
-    overflow-x: auto;  /* Allow horizontal scroll if needed */
+    overflow-x: visible; /* Allow content to wrap instead of scrolling */
 }
 
 .nav-container {
@@ -39,12 +39,12 @@ nav {
     justify-content: space-between;
     align-items: center;
     text-align: center;
-    min-width: 800px;  /* Ensure minimum width for readability */
+    min-width: auto;  /* Remove minimum width to allow responsive behavior */
 }
 
 .nav-links {
     display: flex;
-    flex-wrap: nowrap; /* Prevent wrapping to ensure single line */
+    flex-wrap: wrap; /* Allow wrapping for smaller screens */
     gap: 0.5rem; /* Reduced gap between links */
     flex: 1;
     justify-content: center;
@@ -63,6 +63,7 @@ nav a {
     min-width: max-content;
     background-color: rgba(255, 255, 255, 0.3); /* Semi-transparent white */
     border: 1px solid rgba(0, 255, 255, 0.3); /* Subtle aqua border */
+    margin: 0.2rem 0; /* Add vertical margin for wrapped items */
 }
 
 nav a:hover, nav a.active {
@@ -70,6 +71,34 @@ nav a:hover, nav a.active {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     transform: translateY(-2px); /* Slight lift effect on hover */
     border: 1px solid rgba(0, 255, 255, 0.6); /* More visible aqua border */
+}
+
+/* Responsive adjustments for navbar */
+@media (max-width: 768px) {
+    .nav-links {
+        justify-content: center;
+        padding: 0.5rem 0;
+    }
+    
+    nav a {
+        font-size: 0.75rem;
+        padding: 0.35rem 0.6rem;
+    }
+}
+
+@media (max-width: 480px) {
+    nav {
+        padding: 0.5rem;
+    }
+    
+    .nav-links {
+        gap: 0.3rem;
+    }
+    
+    nav a {
+        font-size: 0.7rem;
+        padding: 0.3rem 0.5rem;
+    }
 }
 
 main {
