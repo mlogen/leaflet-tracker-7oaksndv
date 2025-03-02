@@ -13,16 +13,23 @@ body {
     margin: 0;
     padding: 0;
     font-family: 'Montserrat', sans-serif;
-    background-color: var(--secondary-color);
+    background: linear-gradient(135deg, #f5f7fa 0%, #e4e8eb 100%);
+    background-attachment: fixed;
     color: var(--text-color);
+    min-height: 100vh;
 }
 
 nav {
-    background-color: var(--primary-color);
-    padding: 1rem;
-    box-shadow: 0 2px 4px var(--shadow-color);
-    position: relative;
-    overflow-x: auto;  /* Allow .horizontal scroll if needed */
+    background-color: rgba(0, 255, 255, 0.5); /* More opaque aqua background */
+    backdrop-filter: blur(10px); /* Creates the frosted glass effect */
+    -webkit-backdrop-filter: blur(10px); /* For Safari support */
+    padding: 0.75rem 1rem; /* Slightly reduced vertical padding */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    position: sticky; /* Make navbar sticky */
+    top: 0; /* Stick to the top */
+    z-index: 1000; /* Ensure navbar stays on top */
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5); /* More visible border */
+    overflow-x: auto;  /* Allow horizontal scroll if needed */
 }
 
 .nav-container {
@@ -37,28 +44,32 @@ nav {
 
 .nav-links {
     display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
+    flex-wrap: nowrap; /* Prevent wrapping to ensure single line */
+    gap: 0.5rem; /* Reduced gap between links */
     flex: 1;
     justify-content: center;
-    padding: 0.5rem 0;
+    padding: 0.25rem 0; /* Reduced vertical padding */
 }
 
 nav a {
     color: black;
     text-decoration: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
+    padding: 0.4rem 0.7rem; /* Reduced padding */
+    border-radius: 6px; /* Slightly smaller radius */
     font-weight: 500;
     transition: all 0.3s ease;
     white-space: nowrap;
-    font-size: 0.9rem;
+    font-size: 0.8rem; /* Smaller font size */
     min-width: max-content;
+    background-color: rgba(255, 255, 255, 0.3); /* Semi-transparent white */
+    border: 1px solid rgba(0, 255, 255, 0.3); /* Subtle aqua border */
 }
 
 nav a:hover, nav a.active {
-    background-color: var(--secondary-color);
-    box-shadow: 0 2px 4px var(--shadow-color);
+    background-color: rgba(0, 255, 255, 0.3); /* Aqua tint on hover/active */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px); /* Slight lift effect on hover */
+    border: 1px solid rgba(0, 255, 255, 0.6); /* More visible aqua border */
 }
 
 main {
@@ -203,6 +214,7 @@ footer {
 
 .home-container {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
     margin: 0 auto;
@@ -211,6 +223,9 @@ footer {
     border-radius: 8px;
     box-shadow: 0 2px 8px var(--shadow-color);
     width: 25%;
+    align-self: stretch; /* Make container stretch to match parent height */
+    background-color: rgba(255, 255, 255, 0.7); /* Add slight background */
+    padding: 1rem;
 }
 
 .home-image {
@@ -219,6 +234,8 @@ footer {
     display: block;
     border-radius: 8px;
     border: 10px solid var(--primary-color);
+    object-fit: contain; /* Ensure image maintains aspect ratio */
+    max-height: 100%; /* Allow image to scale within container */
 }
 
 .home-content {
@@ -226,13 +243,21 @@ footer {
     flex-direction: row;
     gap: 2rem;
     justify-content: center;
-    align-items: flex-start;
+    align-items: stretch; /* Changed from flex-start to stretch to align heights */
+    min-height: 600px; /* Set a minimum height for the content area */
 }
 
 .households-table-container {
     flex: 1;
     min-width: 300px;
     max-width: 600px;
+    display: flex;
+    flex-direction: column;
+    background-color: rgba(255, 255, 255, 0.7); /* Add slight background */
+    border-radius: 8px;
+    padding: 1rem;
+    box-shadow: 0 2px 8px var(--shadow-color);
+    align-self: stretch; /* Make container stretch to match parent height */
 }
 
 .households-table-container h2 {

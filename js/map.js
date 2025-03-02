@@ -92,40 +92,67 @@ class MapEditor {
     setupCanvas() {
         const mapImagePath = this.canvas.dataset.mapImage;
         if (mapImagePath) {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-                this.backgroundImage = img;
-                
-                // Set canvas size to exact image dimensions
-                this.canvas.width = img.width;
-                this.canvas.height = img.height;
-                this.drawingLayer.width = img.width;
-                this.drawingLayer.height = img.height;
-
-                // Force the canvas style to match exact dimensions
-                this.canvas.style.width = img.width + 'px';
-                this.canvas.style.height = img.height + 'px';
-                this.drawingLayer.style.width = img.width + 'px';
-                this.drawingLayer.style.height = img.height + 'px';
-
-                // Draw at exact 1:1 scale
-                this.ctx.drawImage(
-                    this.backgroundImage,
-                    0, 0,
-                    img.width,
-                    img.height
-                );
-                
-                this.redrawCanvas();
-                this.loadExistingDrawing();
-            };
-            img.onerror = (error) => {
-                console.error('Error loading image:', error);
-                alert('Please use a local server (like Live Server) to run this application');
-            };
-            img.src = mapImagePath;
+            // Set up lazy loading for the map image
+            this.setupLazyLoading(mapImagePath);
         }
+    }
+
+    setupLazyLoading(mapImagePath) {
+        // Use Intersection Observer for lazy loading
+        if ('IntersectionObserver' in window) {
+            const observer = new IntersectionObserver((entries, observer) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        this.loadMapImage(mapImagePath);
+                        observer.unobserve(entry.target);
+                        console.log('Lazy loaded map image:', mapImagePath);
+                    }
+                });
+            }, {
+                rootMargin: '100px' // Start loading when within 100px of viewport
+            });
+            
+            observer.observe(this.canvas);
+        } else {
+            // Fallback for browsers that don't support IntersectionObserver
+            this.loadMapImage(mapImagePath);
+        }
+    }
+
+    loadMapImage(mapImagePath) {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            this.backgroundImage = img;
+            
+            // Set canvas size to exact image dimensions
+            this.canvas.width = img.width;
+            this.canvas.height = img.height;
+            this.drawingLayer.width = img.width;
+            this.drawingLayer.height = img.height;
+
+            // Force the canvas style to match exact dimensions
+            this.canvas.style.width = img.width + 'px';
+            this.canvas.style.height = img.height + 'px';
+            this.drawingLayer.style.width = img.width + 'px';
+            this.drawingLayer.style.height = img.height + 'px';
+
+            // Draw at exact 1:1 scale
+            this.ctx.drawImage(
+                this.backgroundImage,
+                0, 0,
+                img.width,
+                img.height
+            );
+            
+            this.redrawCanvas();
+            this.loadExistingDrawing();
+        };
+        img.onerror = (error) => {
+            console.error('Error loading image:', error);
+            alert('Please use a local server (like Live Server) to run this application');
+        };
+        img.src = mapImagePath;
     }
 
     setupEventListeners() {
